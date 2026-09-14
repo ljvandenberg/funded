@@ -1,0 +1,110 @@
+import { formatClock, type CampaignResult } from "@funded/shared";
+import { Badges } from "./Badge";
+import { ProgressBar } from "./ProgressBar";
+
+export type ShareState = "available" | "shared-this" | "used" | "own" | "locked";
+
+const GOAL_LABEL = { low: "Low goal", medium: "Medium goal", high: "High goal" } as const;
+
+export function CampaignCard({
+  c,
+  now,
+  isOwn,
+  myCoins,
+  canAdd,
+  canRemove,
+  onAdd,
+  onRemove,
+  shareState,
+  sharedName,
+  onShare,
+  inputsOpen,
+}: {
+  c: CampaignResult;
+  now: number;
+  isOwn: boolean;
+  myCoins: number;
+  canAdd: boolean;
+  canRemove: boolean;
+  onAdd: () => void;
+  onRemove: () => void;
+  shareState: ShareState;
+  sharedName?: string;
+  onShare: () => void;
+  inputsOpen: boolean;
+}) {
+  const locked = !c.launched;
+  const untilLaunch = c.launchesAt != null ? Math.max(0, c.launchesAt - now) : 0;
+  const ownBlocked = isOwn && c.network === "share";
+
+  return (
+    <article className={`card campaign${c.pinned ? " pinned" : ""}${locked ? " locked" : ""}${isOwn ? " own" : ""}`}>
+      <Badges badges={c.badges} sharedBy={c.sharedBy} own={isOwn} />
+      <div>
+        <div className="name">{c.name}</div>
+        <p className="pitch">{c.pitch}</p>
+      </div>
+      <div className="meta">
+        <span>{GOAL_LABEL[c.goalLevel]} · {c.multiplier.toFixed(1)}× if funded</span>
+        <span>{c.backers} backers</span>
+        <span>{c.shares} shares</span>
+      </div>
+      {locked ? (
+        <div className="lock-line">
+          Building an audience · Launches in <span className="num">{formatClock(untilLaunch)}</span>
+        </div>
+      ) : (
+        <>
+          <ProgressBar progress={c.progress} funded={c.funded} />
+          <div className="coins-line">
+            <span className="raised num">
+              {c.raised} / {c.goal} coins
+            </span>
+            {c.funded && <span className="tiny bold" style={{ color: "var(--good)" }}>Goal reached</span>}
+          </div>
+        </>
+      )}
+      {isOwn && !ownBlocked && (
+        <div className="warn">Your own campaign: counts toward the goal, no return, no validation</div>
+      )}
+      {ownBlocked && <div className="warn">Your team chose to share, not to back. Get others to share it!</div>}
+      <div className="actions">
+        {!ownBlocked && (
+          <>
+            <button
+              className="btn icon"
+              onClick={onRemove}
+              disabled={!inputsOpen || locked || !canRemove}
+              aria-label={`Remove a coin from ${c.name}`}
+            >
+              −
+            </button>
+            <span className="mine num" aria-label="Your coins here">
+              {myCoins}
+            </span>
+            <button
+              className="btn icon primary"
+              onClick={onAdd}
+              disabled={!inputsOpen || locked || !canAdd}
+              aria-label={`Add a coin to ${c.name}`}
+            >
+              +
+            </button>
+          </>
+        )}
+        <span className="grow" />
+        {shareState !== "own" && (
+          <button
+            className={`btn small${shareState === "shared-this" ? " shared" : ""}`}
+            onClick={onShare}
+            disabled={!inputsOpen || shareState !== "available"}
+            title={shareState === "used" && sharedName ? `You shared ${sharedName}` : undefined}
+            aria-label={`Share ${c.name}`}
+          >
+            {shareState === "shared-this" ? "Shared ✓" : shareState === "used" ? `Shared ✓ ${sharedName ?? ""}` : "Share"}
+          </button>
+        )}
+      </div>
+    </article>
+  );
+}

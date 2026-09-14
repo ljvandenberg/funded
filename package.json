@@ -1,0 +1,28 @@
+{
+  "name": "funded",
+  "private": true,
+  "version": "1.0.0",
+  "description": "FUNDED — crowdfunding classroom game",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c blue,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
+    "demo": "concurrently -k -n server,client -c blue,magenta \"DEMO_BOTS=30 npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p shared/tsconfig.json --noEmit && tsc -p server/tsconfig.json --noEmit && tsc -p client/tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

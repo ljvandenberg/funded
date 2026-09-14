@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "funded",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": ["/Users/lucas/Documents/FUNDED/scripts/dev-server.sh"],
+      "port": 3000
+    }
+  ]
+}

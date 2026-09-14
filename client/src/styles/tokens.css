@@ -1,0 +1,70 @@
+/* Design tokens. Defined once for both themes. */
+:root {
+  color-scheme: light;
+  --ground: #f4f3ee;
+  --surface: #ffffff;
+  --surface-2: #faf9f5;
+  --ink: #15171b;
+  --muted: #5f6672;
+  --line: #e1dfd8;
+  --accent: #0fa39b;
+  --accent-soft: #d9f3f0;
+  --accent-ink: #ffffff;
+  --coin: #f0a51c;
+  --coin-soft: #fff1d3;
+  --good: #1f9d55;
+  --good-soft: #dcf5e6;
+  --bad: #d64545;
+  --bad-soft: #fbe1e1;
+  --pin: #fff7e0;
+  --shadow: 0 1px 2px rgb(20 23 27 / 0.06), 0 6px 20px rgb(20 23 27 / 0.06);
+  --radius: 14px;
+  --radius-sm: 9px;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-ui: "IBM Plex Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --tap: 44px;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0c0f14;
+  --surface: #161a21;
+  --surface-2: #1c2129;
+  --ink: #f2f4f7;
+  --muted: #9aa3b0;
+  --line: #2a313b;
+  --accent: #2ad4c9;
+  --accent-soft: #123b39;
+  --accent-ink: #06201e;
+  --coin: #ffbf3f;
+  --coin-soft: #3b2e0e;
+  --good: #3ccf7a;
+  --good-soft: #10331f;
+  --bad: #ff6b6b;
+  --bad-soft: #3a1717;
+  --pin: #2a2410;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #0c0f14;
+    --surface: #161a21;
+    --surface-2: #1c2129;
+    --ink: #f2f4f7;
+    --muted: #9aa3b0;
+    --line: #2a313b;
+    --accent: #2ad4c9;
+    --accent-soft: #123b39;
+    --accent-ink: #06201e;
+    --coin: #ffbf3f;
+    --coin-soft: #3b2e0e;
+    --good: #3ccf7a;
+    --good-soft: #10331f;
+    --bad: #ff6b6b;
+    --bad-soft: #3a1717;
+    --pin: #2a2410;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+  }
+}
