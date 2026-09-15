@@ -12,6 +12,7 @@ export type DecisionField = "goal" | "rewards" | "network" | "prep";
 
 export interface Settings {
   teamCount: number; // 4..8
+  maxPerTeam: number; // 0 = no limit
   buildSeconds: number;
   marketSeconds: number;
   launchDelaySeconds: number;

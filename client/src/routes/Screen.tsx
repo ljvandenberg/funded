@@ -6,7 +6,6 @@ import {
   OBJECTIVE_SHORT,
   computeResults,
   formatClock,
-  orderedCampaigns,
   playersOfTeam,
   revealView,
   sortTeamIds,
@@ -16,7 +15,7 @@ import {
 import { getJoinUrl, useGame, useNow } from "../lib/socket";
 import { useCountUp, useFlip, useRisingEdge } from "../lib/motion";
 import { useFeed, type FeedEvent } from "../lib/feed";
-import { setSoundEnabled, sfx, useMarketMusic, useSoundEnabled, useSoundPreference } from "../lib/sound";
+import { setSoundEnabled, sfx, usePhaseMusic, useSoundState, type MusicTrack } from "../lib/sound";
 import { Badges } from "../components/Badge";
 import { Countdown } from "../components/Countdown";
 import { ProgressBar } from "../components/ProgressBar";
@@ -29,10 +28,18 @@ export function Screen() {
     document.documentElement.setAttribute("data-theme", "dark");
     return () => document.documentElement.removeAttribute("data-theme");
   }, []);
-  const soundOn = useSoundEnabled();
-  const { remembered } = useSoundPreference();
+  const { enabled: soundOn, unlocked } = useSoundState();
   const marketOpen = !!game && game.phase === "MARKET" && !game.timerExpired;
-  useMarketMusic(marketOpen);
+  const track: MusicTrack | null = !game
+    ? null
+    : game.phase === "LOBBY"
+      ? "lobby"
+      : game.phase === "BUILD" && !game.timerExpired
+        ? "build"
+        : marketOpen
+          ? "market"
+          : null;
+  usePhaseMusic(track, marketOpen, game?.phase === "MARKET" ? game.phaseEndsAt : null);
 
   const toggleFs = () => {
     if (document.fullscreenElement) document.exitFullscreen();
@@ -58,12 +65,12 @@ export function Screen() {
       {game.phase === "REVEAL" && <RevealScreen game={game} />}
       <div className="screen-controls">
         <button
-          className={`btn small${soundOn ? " primary" : remembered ? " sound-hint" : " ghost"}`}
+          className={`btn small${soundOn && unlocked ? " primary" : soundOn ? " sound-hint" : " ghost"}`}
           onClick={() => setSoundEnabled(!soundOn)}
           aria-pressed={soundOn}
           aria-label={soundOn ? "Turn sound off" : "Turn sound on"}
         >
-          {soundOn ? "🔊 Sound on" : remembered ? "🔈 Click to enable sound" : "🔇 Sound off"}
+          {soundOn && unlocked ? "🔊 Sound on" : soundOn ? "🔈 Click anywhere for sound" : "🔇 Sound off"}
         </button>
         <button className="btn small ghost" onClick={toggleFs} aria-label="Toggle fullscreen">⛶</button>
       </div>
@@ -114,18 +121,18 @@ const FEED_ICON: Record<FeedEvent["kind"], string> = {
   lock: "✓",
 };
 
-function Ticker({ events, label = "Live" }: { events: FeedEvent[]; label?: string }) {
+function Ticker({ events, label = "Live", vertical = false }: { events: FeedEvent[]; label?: string; vertical?: boolean }) {
   return (
-    <div className="ticker" aria-live="polite">
+    <div className={`ticker${vertical ? " vertical" : ""}`} aria-live="polite">
       <span className="ticker-label"><span className="live-dot" />{label}</span>
       <div className="ticker-items">
         {events.map((e, i) => (
-          <span key={e.id} className={`ticker-item ${e.kind}`} style={{ opacity: 1 - i * 0.14 }}>
+          <span key={e.id} className={`ticker-item ${e.kind}`} style={{ opacity: 1 - i * 0.12 }}>
             <span className="ticker-icon">{FEED_ICON[e.kind]}</span>
-            {e.text}
+            <span className="ticker-text">{e.text}</span>
           </span>
         ))}
-        {events.length === 0 && <span className="ticker-item muted">Waiting for the first move…</span>}
+        {events.length === 0 && <span className="ticker-item muted"><span className="ticker-text">Waiting for the first move…</span></span>}
       </div>
     </div>
   );
@@ -226,92 +233,129 @@ function BuildScreen({ game }: { game: Game }) {
   );
 }
 
-// ---------------------------------------------------------------- MARKET
+// ---------------------------------------------------------------- MARKET (race)
+
+const GOAL_SHORT = { low: "Low", medium: "Medium", high: "High" } as const;
+const TRACK_MAX = 1.3; // the track runs to 130% of the goal
 
 function MarketScreen({ game }: { game: Game }) {
   const now = useNow(400);
   const results = useMemo(() => computeResults(game, now), [game, now]);
-  const cards = useMemo(() => orderedCampaigns(results), [results]);
-  const launching = cards.find(
+  const lanes = useMemo(() => {
+    const list = results.campaignOrder.map((id) => results.campaigns[id]);
+    // Race order: furthest toward the goal first; locked campaigns wait at the back.
+    return list.sort((a, b) => {
+      if (a.launched !== b.launched) return a.launched ? -1 : 1;
+      if (b.progress !== a.progress) return b.progress - a.progress;
+      if (b.raised !== a.raised) return b.raised - a.raised;
+      return a.teamNumber - b.teamNumber;
+    });
+  }, [results]);
+  const launching = lanes.find(
     (c) => c.prep === "audience" && game.teams[c.teamId].launchedAt != null && now - game.teams[c.teamId].launchedAt! < CONFIG.launchBannerMs,
   );
-  const totalPlaced = cards.reduce((a, c) => a + c.placed, 0);
+  const totalPlaced = lanes.reduce((a, c) => a + c.placed, 0);
   const placedShown = useCountUp(totalPlaced);
-  const feed = useFeed(game, 6);
+  const fundedCount = lanes.filter((c) => c.funded).length;
+  const feed = useFeed(game, 8);
   const seenEvent = useRef(0);
   useEffect(() => {
-    // Play a sound for each new funded / share event, newest first in the feed.
     const fresh = feed.filter((e) => e.id > seenEvent.current);
     if (feed.length) seenEvent.current = Math.max(seenEvent.current, ...feed.map((e) => e.id));
     if (fresh.some((e) => e.kind === "funded")) sfx("funded");
     else if (fresh.some((e) => e.kind === "share")) sfx("share", 0.7);
   }, [feed]);
-  const gridRef = useFlip<HTMLDivElement>();
-  const ranks = useMemo(() => {
-    const byProgress = [...cards].sort((a, b) => b.progress - a.progress || b.raised - a.raised);
-    return Object.fromEntries(byProgress.map((c, i) => [c.teamId, i + 1]));
-  }, [cards]);
+  const lanesRef = useFlip<HTMLDivElement>();
+  const goalX = (100 / TRACK_MAX).toFixed(2) + "%";
+
   return (
     <>
-      <Top title="Round 2 · The market" game={game} kicker={`${results.campaigns[cards[0]?.teamId]?.name ? cards.filter((c) => c.funded).length : 0} funded`} />
+      <Top title="Round 2 · The market" game={game} kicker={`${fundedCount} of ${lanes.length} funded`} />
       {launching && (
         <div className="launch-banner" key={launching.teamId}>
           <span className="rocket">🚀</span> Just launched: {launching.name}
         </div>
       )}
       {game.timerExpired && <div className="banner closed-banner">Market closed</div>}
-      <div ref={gridRef} className="screen-grid" style={{ "--cols": cols(cards.length) } as React.CSSProperties}>
-        {cards.map((c) => (
-          <ScreenCard key={c.teamId} c={c} now={now} game={game} rank={ranks[c.teamId]} />
-        ))}
-      </div>
-      <div className="market-footer">
-        <div className="pool">
-          <div className="pool-bar"><div className="pool-fill" style={{ width: `${(100 * totalPlaced) / Math.max(1, results.totalCoins)}%` }} /></div>
-          <span className="num">{placedShown} of {results.totalCoins} coins placed</span>
+      <div className="race-layout">
+        <div className="race">
+          <div className="race-head">
+            <span />
+            <span />
+            <div className="race-track-head">
+              <span className="start-label">Start</span>
+              <span className="goal-label" style={{ left: goalX }}>▼ Goal</span>
+            </div>
+            <span />
+          </div>
+          <div ref={lanesRef} className="lanes">
+            {lanes.map((c, i) => (
+              <Lane key={c.teamId} c={c} rank={i + 1} now={now} game={game} goalX={goalX} />
+            ))}
+          </div>
         </div>
-        <Ticker events={feed} />
+        <aside className="race-side">
+          {/* Absolutely positioned so the column never grows past the lanes. */}
+          <div className="race-side-inner">
+            <div className="card flat side-stat">
+              <div className="pool-bar"><div className="pool-fill" style={{ width: `${(100 * totalPlaced) / Math.max(1, results.totalCoins)}%` }} /></div>
+              <span className="num muted">{Math.round(placedShown)} of {results.totalCoins} coins placed</span>
+            </div>
+            <Ticker events={feed} vertical />
+          </div>
+        </aside>
       </div>
     </>
   );
 }
 
-function ScreenCard({ c, now, game, rank }: { c: CampaignResult; now: number; game: Game; rank: number }) {
+function Lane({ c, rank, now, game, goalX }: { c: CampaignResult; rank: number; now: number; game: Game; goalX: string }) {
   const t = game.teams[c.teamId];
   const sharedFlash = t.lastSharedAt != null && now - t.lastSharedAt < 1500;
   const untilLaunch = c.launchesAt != null ? Math.max(0, c.launchesAt - now) : 0;
   const raised = useCountUp(c.raised, 500);
   const fundedAt = useRisingEdge(c.funded);
   const celebrating = fundedAt != null && Date.now() - fundedAt < 3000;
+  const width = `${(Math.min(c.progress, TRACK_MAX) / TRACK_MAX) * 100}%`;
   return (
     <div
       data-flip-key={c.teamId}
-      className={`card campaign screen-card${c.pinned ? " pinned" : ""}${!c.launched ? " locked" : ""}${sharedFlash ? " flash" : ""}${c.funded ? " is-funded" : ""}`}
+      className={`lane${c.funded ? " is-funded" : ""}${!c.launched ? " locked" : ""}${sharedFlash ? " flash" : ""}${c.isNew ? " is-new" : ""}`}
     >
-      {c.launched && <div key={c.raised} className="glow-flash" aria-hidden />}
-      {celebrating && <Confetti />}
-      <div className="rank-pill num" aria-label={`Rank ${rank}`}>#{rank}</div>
-      <Badges badges={c.badges} sharedBy={c.sharedBy} />
-      <div>
-        <div className="name">{c.name}</div>
-        <p className="pitch muted">{c.pitch}</p>
-      </div>
-      {c.launched ? (
-        <>
-          <ProgressBar progress={c.progress} funded={c.funded} big />
-          <div className="coins-line">
-            <span className="raised num">
-              <span key={c.raised} className="pop">{Math.round(raised)}</span> / {c.goal}
-            </span>
-            <span className="muted num">{c.backers} backers · {c.shares} shares · {c.multiplier.toFixed(1)}×</span>
-          </div>
-        </>
-      ) : (
-        <div className="lock-line" style={{ fontSize: "1.3rem" }}>
-          <span className="lock-icon">⏳</span> Launches in <span className="num">{formatClock(untilLaunch)}</span>
-          <div className="launch-progress"><div style={{ width: `${100 - (100 * untilLaunch) / (game.settings.launchDelaySeconds * 1000)}%` }} /></div>
+      <div className="lane-rank num"><span key={rank} className="pop">{c.funded ? "✓" : rank}</span></div>
+      <div className="lane-info">
+        <div className="lane-name">{c.name}</div>
+        <div className="lane-meta">
+          <span className="lane-team">Team {c.teamNumber}</span>
+          <span>{GOAL_SHORT[c.goalLevel]} goal · {c.multiplier.toFixed(1)}×</span>
+          <Badges badges={c.badges.filter((b) => b !== "New")} />
         </div>
-      )}
+      </div>
+      <div className="lane-track">
+        {c.launched && <div key={c.raised} className="glow-flash" aria-hidden />}
+        {celebrating && <Confetti />}
+        <div className="goal-line" style={{ left: goalX }} />
+        {c.launched ? (
+          <>
+            <div className="lane-fill" style={{ width }}>
+              <span className="runner" />
+            </div>
+            {c.funded && <div className="lane-stamp">FUNDED</div>}
+          </>
+        ) : (
+          <div className="lane-locked">
+            <span className="lock-icon">⏳</span> Launches in <span className="num">{formatClock(untilLaunch)}</span>
+            <div className="launch-progress"><div style={{ width: `${100 - (100 * untilLaunch) / (game.settings.launchDelaySeconds * 1000)}%` }} /></div>
+          </div>
+        )}
+      </div>
+      <div className="lane-nums">
+        <div className="lane-raised num">
+          <span key={c.raised} className="pop">{Math.round(raised)}</span>
+          <span className="lane-goal">/ {c.goal}</span>
+        </div>
+        <div className="lane-sub num">{c.backers} backers · {c.shares} shares</div>
+      </div>
     </div>
   );
 }

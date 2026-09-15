@@ -120,6 +120,11 @@ export function totalAlloc(alloc: Record<TeamId, number>): number {
   return Object.values(alloc).reduce((a, b) => a + (b || 0), 0);
 }
 
+export function teamIsFull(game: Game, teamId: TeamId): boolean {
+  const max = game.settings.maxPerTeam || 0;
+  return max > 0 && playersOfTeam(game, teamId).length >= max;
+}
+
 export function playersOfTeam(game: Game, teamId: TeamId): Player[] {
   return Object.values(game.players)
     .filter((p) => p.teamId === teamId)

@@ -210,7 +210,7 @@ function Console({ game }: { game: Game }) {
               return (
                 <div key={id} className={`card stack tight${noCaptain && members.length ? " amber" : ""}`}>
                   <div className="row between">
-                    <span className="display bold">Team {id.slice(1)} · {CASE_BY_ID[team.caseId].name}</span>
+                    <span className="display bold">Team {id.slice(1)} · {CASE_BY_ID[team.caseId].name} <span className="muted small num">{members.length}{game.settings.maxPerTeam ? ` / ${game.settings.maxPerTeam}` : ""}</span></span>
                     {game.phase === "BUILD" && <span className={`chip${team.lockedIn ? " you" : ""}`}>{team.lockedIn ? "Locked in ✓" : "Deciding…"}</span>}
                     {game.phase === "MARKET" && <span className="chip num">{c.launched ? `${c.raised}/${c.goal}` : "locked"}</span>}
                   </div>
@@ -263,10 +263,11 @@ function Settings({ game }: { game: Game }) {
     marketSeconds: s.marketSeconds,
     launchDelaySeconds: s.launchDelaySeconds,
     coinsPerPlayer: s.coinsPerPlayer,
+    maxPerTeam: s.maxPerTeam,
   });
   useEffect(() => {
-    setForm({ teamCount: s.teamCount, buildSeconds: s.buildSeconds, marketSeconds: s.marketSeconds, launchDelaySeconds: s.launchDelaySeconds, coinsPerPlayer: s.coinsPerPlayer });
-  }, [s.teamCount, s.buildSeconds, s.marketSeconds, s.launchDelaySeconds, s.coinsPerPlayer]);
+    setForm({ teamCount: s.teamCount, buildSeconds: s.buildSeconds, marketSeconds: s.marketSeconds, launchDelaySeconds: s.launchDelaySeconds, coinsPerPlayer: s.coinsPerPlayer, maxPerTeam: s.maxPerTeam });
+  }, [s.teamCount, s.buildSeconds, s.marketSeconds, s.launchDelaySeconds, s.coinsPerPlayer, s.maxPerTeam]);
 
   const field = (key: keyof typeof form, label: string, min: number, max: number) => (
     <label className="field small">
@@ -289,6 +290,7 @@ function Settings({ game }: { game: Game }) {
       <div className="settings-grid">
         {field("teamCount", `Teams (${CONFIG.minTeams}–${CONFIG.maxTeams})`, CONFIG.minTeams, CONFIG.maxTeams)}
         {field("coinsPerPlayer", "Coins per player", 1, 20)}
+        {field("maxPerTeam", "Max players per team (0 = no limit)", 0, 50)}
         {field("buildSeconds", "Round 1 (s)", 30, 1800)}
         {field("marketSeconds", "Market (s)", 30, 1800)}
         {field("launchDelaySeconds", "Launch delay (s)", 0, 600)}

@@ -9,6 +9,7 @@ import {
   launchesAt,
   playersOfTeam,
   sortTeamIds,
+  teamIsFull,
   totalAlloc,
   type Ack,
   type DecisionField,
@@ -39,6 +40,7 @@ export function toAck(e: unknown): Ack {
 export function defaultSettings(overrides: Partial<Settings> = {}): Settings {
   return {
     teamCount: CONFIG.defaultTeams,
+    maxPerTeam: CONFIG.maxPerTeam,
     buildSeconds: CONFIG.buildSeconds,
     marketSeconds: CONFIG.marketSeconds,
     launchDelaySeconds: CONFIG.launchDelaySeconds,
@@ -202,6 +204,7 @@ export class GameStore {
       existing.connected = true;
       existing.lastSeen = now;
       if (existing.teamId !== team.id && g.phase === "LOBBY") {
+        if (teamIsFull(g, team.id)) throw new GameError("TEAM_FULL");
         const oldTeam = existing.teamId;
         existing.teamId = team.id;
         this.ensureCaptain(oldTeam, now);
@@ -211,6 +214,7 @@ export class GameStore {
       return existing;
     }
 
+    if (teamIsFull(g, team.id)) throw new GameError("TEAM_FULL");
     const id = input.playerId && /^[\w-]{8,64}$/.test(input.playerId) ? input.playerId : randomUUID();
     const player: Player = {
       id,
@@ -332,6 +336,11 @@ export class GameStore {
       alloc[teamId] = coins;
     }
     if (totalAlloc(alloc) > g.settings.coinsPerPlayer) throw new GameError("OVER_BUDGET");
+    // Coins are final: a campaign's count can only go up.
+    const before = g.pledges[playerId]?.alloc ?? {};
+    for (const [teamId, coins] of Object.entries(before)) {
+      if ((alloc[teamId] ?? 0) < coins) throw new GameError("NO_REFUND");
+    }
     g.pledges[playerId] = { playerId, alloc, updatedAt: now };
     this.changed();
   }
@@ -364,6 +373,7 @@ export class GameStore {
     if (partial.launchDelaySeconds != null)
       s.launchDelaySeconds = int(partial.launchDelaySeconds, 0, 600, s.launchDelaySeconds);
     if (partial.coinsPerPlayer != null) s.coinsPerPlayer = int(partial.coinsPerPlayer, 1, 20, s.coinsPerPlayer);
+    if (partial.maxPerTeam != null) s.maxPerTeam = int(partial.maxPerTeam, 0, 50, s.maxPerTeam);
     if (partial.pinSeconds != null) s.pinSeconds = int(partial.pinSeconds, 5, 120, s.pinSeconds);
     if (partial.teamCount != null) {
       const count = int(partial.teamCount, CONFIG.minTeams, CONFIG.maxTeams, s.teamCount);
@@ -517,10 +527,12 @@ export class GameStore {
     for (let i = 0; i < n; i++) {
       const idx = existingBots + i;
       const name = `Bot ${BOT_NAMES[idx % BOT_NAMES.length]}${idx >= BOT_NAMES.length ? " " + (Math.floor(idx / BOT_NAMES.length) + 1) : ""}`;
-      // Fill the emptiest team first so humans' teams also get members.
-      const counts = teamIds.map((id) => playersOfTeam(g, id).length);
+      // Fill the emptiest team first so humans' teams also get members; skip full ones.
+      const open = teamIds.filter((id) => !teamIsFull(g, id));
+      if (!open.length) break;
+      const counts = open.map((id) => playersOfTeam(g, id).length);
       const min = Math.min(...counts);
-      const teamId = teamIds[counts.indexOf(min)];
+      const teamId = open[counts.indexOf(min)];
       const p = this.join({ name, teamId, playerId: `bot-${randomUUID()}` }, now + i, true);
       added.push(p);
     }

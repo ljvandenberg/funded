@@ -7,9 +7,9 @@ import {
   estimateTotalCoins,
   goalCoins,
   inputsOpen,
-  orderedCampaigns,
   playersOfTeam,
   revealView,
+  teamIsFull,
   sortTeamIds,
   totalAlloc,
   type CampaignResult,
@@ -162,13 +162,17 @@ function Join({ game, onJoined }: { game: Game; onJoined: (id: string) => void }
               {teamIds.map((id) => {
                 const members = playersOfTeam(game, id);
                 const cap = game.teams[id].captainId ? game.players[game.teams[id].captainId!] : undefined;
+                const full = teamIsFull(game, id);
+                const max = game.settings.maxPerTeam;
                 return (
-                  <button key={id} className="team-btn" aria-pressed={teamId === id} aria-label={`Team ${id.slice(1)}`} onClick={() => setTeamId(id)}>
-                    <span className="t">Team {id.slice(1)}</span>
+                  <button key={id} className="team-btn" aria-pressed={teamId === id} aria-label={`Team ${id.slice(1)}`} disabled={full} onClick={() => setTeamId(id)}>
+                    <span className="t">Team {id.slice(1)}{max ? <span className="muted tiny"> {members.length}/{max}</span> : null}</span>
                     <span className="tiny muted">
-                      {members.length === 0
-                        ? "You'll be the captain"
-                        : `${members.length} joined · Captain: ${cap?.name ?? "—"}`}
+                      {full
+                        ? "Full"
+                        : members.length === 0
+                          ? "You'll be the captain"
+                          : `${members.length} joined · Captain: ${cap?.name ?? "—"}`}
                     </span>
                   </button>
                 );
@@ -484,8 +488,21 @@ function Market({ game, me }: { game: Game; me: PlayerT }) {
   const now = useNow(500);
   const open = inputsOpen(game, "MARKET");
   const results = useMemo(() => computeResults(game, now), [game, now]);
-  const cards = useMemo(() => orderedCampaigns(results), [results]);
+  // Fixed order (by team) so the list never reshuffles while you read it,
+  // except that a campaign that built an audience moves to the top when it
+  // launches and stays there for the rest of the market.
+  const cards = useMemo(() => {
+    const list = results.campaignOrder.map((id) => results.campaigns[id]);
+    const boosted = list.filter((c) => c.prep === "audience" && c.launched);
+    const rest = list.filter((c) => !(c.prep === "audience" && c.launched));
+    return [...boosted, ...rest];
+  }, [results]);
   const budget = game.settings.coinsPerPlayer;
+  // Campaigns that just launched after building an audience.
+  const justLaunched = cards.filter((c) => {
+    const at = game.teams[c.teamId].launchedAt;
+    return c.prep === "audience" && at != null && now - at < CONFIG.launchBannerMs * 2;
+  });
 
   const serverAlloc = game.pledges[me.id]?.alloc ?? {};
   const serverAllocJson = JSON.stringify(serverAlloc);
@@ -543,8 +560,18 @@ function Market({ game, me }: { game: Game; me: PlayerT }) {
           </div>
           <span className="tiny muted">{me.sharedTeamId ? "Share used" : "1 share left"}</span>
         </div>
+        <p className="tiny muted">Placed coins are final. Choose carefully.</p>
       </div>
       {!open && <div className="banner">Market closed. Waiting for results…</div>}
+      {justLaunched.map((c) => (
+        <div key={c.teamId} className="launch-note" role="status">
+          <span className="rocket">🚀</span>
+          <span>
+            {c.teamId === me.teamId ? "Your campaign is live!" : `${c.name} is live!`}{" "}
+            {c.teamId === me.teamId ? "Get others to back and share it." : "You can back and share it now."}
+          </span>
+        </div>
+      ))}
       {cards.map((c) => (
         <CampaignCard
           key={c.teamId}
@@ -553,13 +580,12 @@ function Market({ game, me }: { game: Game; me: PlayerT }) {
           isOwn={c.teamId === me.teamId}
           myCoins={alloc[c.teamId] || 0}
           canAdd={true /* over-budget taps show the "no coins left" toast */}
-          canRemove={(alloc[c.teamId] || 0) > 0}
           onAdd={() => change(c.teamId, +1)}
-          onRemove={() => change(c.teamId, -1)}
           shareState={shareStateFor(c)}
           sharedName={sharedName}
           onShare={() => act("share", { teamId: c.teamId })}
           inputsOpen={open}
+          justLaunched={justLaunched.some((j) => j.teamId === c.teamId)}
         />
       ))}
       <p className="muted tiny center">

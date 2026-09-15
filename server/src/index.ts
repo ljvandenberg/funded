@@ -6,7 +6,7 @@ import express from "express";
 import { Server, type Socket } from "socket.io";
 import { CONFIG, type Ack, type PlayerId, type Phase } from "@funded/shared";
 import { BotRunner } from "./bots";
-import { GameError, GameStore, toAck } from "./game";
+import { GameError, GameStore, defaultSettings, toAck } from "./game";
 import { createSaver, loadGame } from "./persist";
 import { startTimers } from "./timers";
 
@@ -23,6 +23,8 @@ if (!process.env.HOST_PIN) {
 // ---------- state ----------
 
 const restored = loadGame(DATA_FILE);
+// Older saves may lack newer settings; fill them with defaults.
+if (restored) restored.settings = { ...defaultSettings(), ...restored.settings };
 const store = new GameStore(restored ?? undefined);
 if (restored) console.log(`[funded] restored game ${restored.id} in phase ${restored.phase}`);
 

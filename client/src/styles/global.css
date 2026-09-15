@@ -383,3 +383,134 @@ select.input { appearance: auto; }
   .timer-wrap.urgent, .live-dot, .ticker-item, .qr-ring, .name-chip, .waiting-dots::after, .lock-stamp, .confetti span { animation: none !important; }
   .flip-in, .verdict.stamp-in, .ticker-item, .name-chip, .lock-stamp { opacity: 1; transform: none; }
 }
+
+/* ---------- market race ---------- */
+.race-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; flex: 1; min-height: 0; align-items: stretch; }
+@media (max-width: 1000px) { .race-layout { grid-template-columns: 1fr; } }
+.race { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.race-head, .lane { display: grid; grid-template-columns: 52px minmax(180px, 260px) 1fr 150px; gap: 14px; align-items: center; }
+@media (max-width: 1300px) { .race-head, .lane { grid-template-columns: 44px minmax(150px, 200px) 1fr 120px; } }
+.race-head { padding: 0 14px; }
+.race-track-head { position: relative; height: 22px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.race-track-head .start-label { position: absolute; left: 0; }
+.race-track-head .goal-label { position: absolute; transform: translateX(-50%); color: var(--coin); }
+.race-track-head .over-label { position: absolute; right: 0; }
+.lanes { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.lane { position: relative; padding: 10px 14px; border-radius: 14px; background: color-mix(in srgb, var(--surface) 82%, transparent); border: 1px solid var(--line); backdrop-filter: blur(12px); box-shadow: var(--shadow); transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease; min-height: 72px; }
+.lane.is-funded { border-color: var(--good); background: color-mix(in srgb, var(--good) 10%, var(--surface)); }
+.lane.is-new { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 10px 30px color-mix(in srgb, var(--accent) 25%, transparent); }
+.lane.locked { opacity: 0.7; }
+.lane.flash { animation: flash 1s ease-out; }
+.lane-rank { font-family: var(--font-display); font-weight: 800; font-size: 1.9rem; color: var(--muted); text-align: center; line-height: 1; }
+.lane:nth-child(1) .lane-rank { color: var(--coin); }
+.lane-info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.lane-name { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.1rem, 1.5vw, 1.5rem); line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lane-team { font-family: var(--font-ui); font-weight: 600; font-size: 0.8rem; color: var(--muted); }
+.lane-meta { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--muted); white-space: nowrap; overflow: hidden; }
+.lane-meta .badges { min-height: 0; flex-wrap: nowrap; }
+.lane-meta .badge { height: 18px; font-size: 0.62rem; padding: 0 6px; }
+.lane-shared { font-size: 0.75rem; color: var(--good); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lane-track { position: relative; height: 34px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); overflow: visible; }
+.lane-track .glow-flash { border-radius: 999px; }
+.goal-line { position: absolute; top: -8px; bottom: -8px; width: 3px; transform: translateX(-50%); background: var(--coin); border-radius: 2px; z-index: 2; box-shadow: 0 0 12px var(--coin); }
+.lane-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 70%, transparent), var(--accent)); transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); min-width: 34px; display: flex; align-items: center; justify-content: flex-end; overflow: visible; }
+.lane.is-funded .lane-fill { background: linear-gradient(90deg, color-mix(in srgb, var(--good) 70%, transparent), var(--good)); }
+.runner { display: inline-block; width: 26px; height: 26px; margin-right: 4px; border-radius: 50%; background: var(--coin); color: var(--coin); border: 3px solid var(--ground); box-shadow: 0 0 0 2px var(--coin), 0 0 14px var(--coin); font-size: 0; animation: bob 1.1s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+.lane-stamp { position: absolute; top: 50%; transform: translate(12px, -50%) rotate(-6deg); font-family: var(--font-display); font-weight: 800; letter-spacing: 0.08em; font-size: 0.85rem; color: var(--good); border: 2px solid var(--good); padding: 1px 8px; border-radius: 4px; background: var(--surface); z-index: 3; animation: stamp-flat 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.lane-locked { display: flex; align-items: center; gap: 8px; height: 100%; padding: 0 14px; font-size: 0.9rem; color: var(--muted); white-space: nowrap; }
+.lane-locked .launch-progress { flex: 1; margin-top: 0; }
+.lane-nums { text-align: right; }
+.lane-raised { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.3rem, 1.8vw, 1.8rem); line-height: 1; }
+.lane-sub { font-size: 0.75rem; margin-top: 4px; white-space: nowrap; }
+.lane .confetti { left: 40%; }
+
+/* side column */
+.race-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.side-stat { display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem; }
+.ticker.vertical { flex-direction: column; align-items: stretch; border-radius: var(--radius); padding: 12px 14px; flex: 1; }
+.ticker.vertical .ticker-items { flex-direction: column; gap: 8px; }
+.ticker.vertical .ticker-item { flex: none; white-space: normal; animation-name: ticker-in-v; }
+.ticker-item { flex: none; }
+.ticker-text { overflow: hidden; text-overflow: ellipsis; }
+@keyframes ticker-in-v { from { transform: translateY(-12px) scale(0.96); opacity: 0; } }
+
+/* feed column: full-width rows, wrapping text */
+.ticker.vertical .ticker-item { width: 100%; box-sizing: border-box; display: flex; align-items: flex-start; }
+.ticker.vertical .ticker-text { flex: 1; min-width: 0; white-space: normal; overflow: visible; line-height: 1.3; }
+.ticker.vertical .ticker-icon { flex: none; margin-top: 3px; }
+.ticker-text { min-width: 0; }
+
+/* fit seven lanes on a 768px-tall screen */
+.screen.phase-market { padding-top: 18px; gap: 14px; }
+.screen.phase-market h1 { font-size: 2rem; }
+.lane { padding: 8px 14px; min-height: 64px; }
+.lanes { gap: 6px; }
+.lane-info { gap: 2px; }
+.lane-shared { display: inline; }
+
+/* ---------- market race: cleaner lanes ---------- */
+.lane { grid-template-columns: 56px minmax(170px, 240px) 1fr 140px; gap: 16px; }
+.race-head { grid-template-columns: 56px minmax(170px, 240px) 1fr 140px; gap: 16px; padding: 0 16px 0 10px; }
+@media (max-width: 1300px) { .race-head, .lane { grid-template-columns: 48px minmax(140px, 190px) 1fr 120px; } }
+.lane-rank { width: 40px; height: 40px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center; font-size: 1.25rem; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); }
+.lane:nth-child(1) .lane-rank { color: var(--ground); background: var(--coin); border-color: var(--coin); }
+.lane.is-funded .lane-rank { color: var(--ground); background: var(--good); border-color: var(--good); }
+.lane-name { font-size: clamp(1.15rem, 1.6vw, 1.6rem); }
+.lane-meta { gap: 10px; flex-wrap: wrap; overflow: visible; white-space: normal; row-gap: 2px; }
+.lane-meta .badges { flex-wrap: wrap; }
+.lane-meta .lane-team { font-weight: 700; color: var(--ink); opacity: 0.8; }
+.lane-meta .badge { height: 16px; font-size: 0.58rem; }
+.lane-track { height: 32px; overflow: hidden; background: color-mix(in srgb, var(--surface-2) 70%, transparent); }
+.lane-track .goal-line { top: 0; bottom: 0; }
+.lane-fill { min-width: 36px; }
+.runner { width: 24px; height: 24px; margin-right: 5px; }
+.lane-stamp { transform: translate(10px, -50%) rotate(-6deg); font-size: 0.8rem; }
+.lane-raised { font-size: clamp(1.8rem, 2.4vw, 2.5rem); display: flex; align-items: baseline; justify-content: flex-end; gap: 6px; }
+.lane-goal { font-family: var(--font-ui); font-size: 0.95rem; font-weight: 600; color: var(--muted); }
+.lane.is-funded .lane-raised { color: var(--good); }
+.lane-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+.race-track-head .goal-label { white-space: nowrap; }
+.mine-label { margin-right: 2px; }
+
+/* vertical budget: seven lanes with wrapped badges on a 768px screen */
+.screen.phase-market { padding-top: 14px; gap: 10px; }
+.screen.phase-market .countdown.huge { font-size: 4rem; }
+.screen.phase-market h1 { font-size: 1.8rem; }
+.lane { padding: 5px 16px 5px 10px; min-height: 58px; }
+.lanes { gap: 5px; }
+
+/* phone: launch banner */
+.launch-note { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--accent); color: var(--accent-ink); font-weight: 700; animation: rise-in 0.4s ease-out; }
+.launch-note .rocket { font-size: 1.4rem; }
+.campaign.just-launched { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.live-pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.live-pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: blink 1.2s ease-in-out infinite; }
+
+/* FUNDED stamp: centred over the track, above fill and runner, always legible */
+.lane-stamp {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  font-size: 0.95rem;
+  letter-spacing: 0.18em;
+  padding: 3px 14px;
+  border-radius: 999px;
+  color: var(--ground);
+  background: var(--good);
+  border: 2px solid var(--ground);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.45);
+  animation: stamp-center 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes stamp-center { 0% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+.lane-fill, .runner { z-index: 1; }
+.lane-track .goal-line { z-index: 2; }
+
+/* side column: exactly as tall as the lanes, never taller */
+.race-layout { flex: none; align-items: stretch; }
+.race-side { position: relative; min-height: 0; }
+.race-side-inner { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 14px; }
+.ticker.vertical { flex: 1; min-height: 0; overflow: hidden; }
+.ticker.vertical .ticker-items { overflow: hidden; }
+@media (max-width: 1000px) { .race-side { min-height: 320px; } }

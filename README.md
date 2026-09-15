@@ -67,7 +67,7 @@ The platform must provide HTTPS (phone cameras only open QR links over https). S
 
 All numbers come from `shared/src/config.ts`. Defaults:
 
-- 5 coins per player, 1 share per player.
+- 5 coins per player, 1 share per player. Placed coins are final: a player can add coins to a campaign but never take them back (the server rejects decreases).
 - Goals: Low 9% / Medium 15% / High 24% of all coins in play (players × 5, fixed when the market opens, rounded up). Returns 1.0× / 1.5× / 2.0× if funded, +0.5× with Generous rewards.
 - Rewards cost 20% (Modest) or 50% (Generous) of what is raised.
 - Network: "Ask friends to back" lets own team members put coins in (count toward the goal, no return, no validation). "Ask friends to share" blocks own-team coins but doubles every share to 2 virtual coins.
@@ -89,7 +89,7 @@ Every screen computes its numbers with the same pure function, `computeResults()
 | 10:00 | **Back to lobby** to play again with the same players, or **Open lobby (reset)** for a new class. | |
 
 Tips:
-- Sound on the big screen: click **Sound off** in the bottom-right corner of `/screen` once (browsers only allow audio after a click). The market loop plays while Round 2 is open, a cash register rings when a campaign gets funded, and a chirp plays on every share. Phones and the host console stay silent. Audio files live in `client/public/audio/`.
+- Sound on the big screen is on by default. Browsers sometimes block audio until the page has been clicked; the button in the bottom-right corner of `/screen` then reads "Click anywhere for sound", and any click or key press on the page unlocks it. The same button mutes. Lobby music plays in the lobby, a decision-making loop during Round 1, and the market loop while Round 2 is open. A cash register rings when a campaign gets funded, a chirp plays on every share, and a cinematic boom starts two seconds before the market timer ends so its peak lands on 0:00 (it plays at once if the host closes early). Phones and the host console stay silent. Audio files live in `client/public/audio/`.
 - The host console can reassign captains, kick players and add 30 bots for a demo.
 - Bots spread their five coins over most of the market (first coin after 5–40 s, then one every 12–40 s) and share once between 20 s and 120 s. The tighter 4–12 s pacing from the design spec emptied all bot wallets before audience-building campaigns launched, which hid that mechanic in demos.
 - Timers do not auto-advance; the host always presses the next button.

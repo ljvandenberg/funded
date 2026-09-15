@@ -12,34 +12,35 @@ export function CampaignCard({
   isOwn,
   myCoins,
   canAdd,
-  canRemove,
   onAdd,
-  onRemove,
   shareState,
   sharedName,
   onShare,
   inputsOpen,
+  justLaunched = false,
 }: {
   c: CampaignResult;
   now: number;
   isOwn: boolean;
   myCoins: number;
   canAdd: boolean;
-  canRemove: boolean;
   onAdd: () => void;
-  onRemove: () => void;
   shareState: ShareState;
   sharedName?: string;
   onShare: () => void;
   inputsOpen: boolean;
+  justLaunched?: boolean;
 }) {
   const locked = !c.launched;
   const untilLaunch = c.launchesAt != null ? Math.max(0, c.launchesAt - now) : 0;
   const ownBlocked = isOwn && c.network === "share";
 
   return (
-    <article className={`card campaign${c.pinned ? " pinned" : ""}${locked ? " locked" : ""}${isOwn ? " own" : ""}`}>
-      <Badges badges={c.badges} sharedBy={c.sharedBy} own={isOwn} />
+    <article className={`card campaign${c.pinned ? " pinned" : ""}${locked ? " locked" : ""}${isOwn ? " own" : ""}${justLaunched ? " just-launched" : ""}`}>
+      <div className="row between">
+        <Badges badges={c.badges} sharedBy={c.sharedBy} own={isOwn} />
+        {justLaunched && <span className="live-pill">Live</span>}
+      </div>
       <div>
         <div className="name">{c.name}</div>
         <p className="pitch">{c.pitch}</p>
@@ -71,14 +72,7 @@ export function CampaignCard({
       <div className="actions">
         {!ownBlocked && (
           <>
-            <button
-              className="btn icon"
-              onClick={onRemove}
-              disabled={!inputsOpen || locked || !canRemove}
-              aria-label={`Remove a coin from ${c.name}`}
-            >
-              −
-            </button>
+            <span className="mine-label tiny muted">Your coins</span>
             <span className="mine num" aria-label="Your coins here">
               {myCoins}
             </span>

@@ -5,6 +5,7 @@ import type { Game, Player, Settings, Team, TeamId } from "./types";
 export function defaultSettings(overrides: Partial<Settings> = {}): Settings {
   return {
     teamCount: CONFIG.defaultTeams,
+    maxPerTeam: CONFIG.maxPerTeam,
     buildSeconds: CONFIG.buildSeconds,
     marketSeconds: CONFIG.marketSeconds,
     launchDelaySeconds: CONFIG.launchDelaySeconds,

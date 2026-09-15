@@ -90,6 +90,22 @@ describe("join and captains", () => {
     expect(Object.values(store.game.players).every((p) => !p.isBot)).toBe(true);
   });
 
+  it("caps players per team when the host sets a limit", () => {
+    const store = new GameStore();
+    store.setSettings({ teamCount: 4, maxPerTeam: 2 }, T0);
+    store.join({ name: "A", teamId: "t1" }, T0);
+    store.join({ name: "B", teamId: "t1" }, T0 + 1);
+    expectCode(() => store.join({ name: "C", teamId: "t1" }, T0 + 2), "TEAM_FULL");
+    const c = store.join({ name: "C", teamId: "t2" }, T0 + 2);
+    // switching into a full team in the lobby is refused too
+    expectCode(() => store.join({ playerId: c.id, name: "C", teamId: "t1" }, T0 + 3), "TEAM_FULL");
+    store.addBots(20, T0 + 4);
+    expect(Object.keys(store.game.players)).toHaveLength(8); // 4 teams × 2
+    store.setSettings({ maxPerTeam: 0 }, T0 + 5);
+    store.join({ name: "D", teamId: "t1" }, T0 + 6);
+    expect(store.game.players).toBeDefined();
+  });
+
   it("reassigns players when the host shrinks the team count", () => {
     const { store, c } = lobbyWithPlayers(4);
     store.join({ name: "D", teamId: "t4" }, T0 + 3);
@@ -154,6 +170,9 @@ describe("market", () => {
     // own campaign: t2 chose defaults (back) so C may back it
     store.setPledge(c.id, { t2: 2, t3: 3 }, now);
     expect(store.game.pledges[c.id].alloc).toEqual({ t2: 2, t3: 3 });
+    // placed coins are final
+    expectCode(() => store.setPledge(c.id, { t2: 1, t3: 3 }, now), "NO_REFUND");
+    expectCode(() => store.setPledge(c.id, { t3: 3 }, now), "NO_REFUND");
     // team 1 chose "share": members cannot back their own campaign, even once launched
     store.tick(T0 + 100 + 40_000);
     expectCode(() => store.setPledge(b.id, { t1: 1 }, T0 + 100 + 41_000), "OWN_NETWORK_SHARE");

@@ -1,56 +1,102 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { serverNow } from "./socket";
 
 /**
  * Big-screen audio: a music loop while the market is open, plus one-shot
- * effects. Browsers refuse to play audio until the page has been clicked, so
- * `enable()` must be called from a user gesture; the choice is remembered.
+ * effects. Sound is on by default. Browsers block audio until the page has
+ * received a click or key press, so until then the screen shows a hint and
+ * the first gesture anywhere on the page unlocks playback.
  */
 const KEY = "funded.sound";
 const FILES = {
-  music: "/audio/market-loop.mp3",
+  lobby: "/audio/lobby-loop.mp3",
+  build: "/audio/build-loop.mp3",
+  market: "/audio/market-loop.mp3",
   funded: "/audio/funded.mp3",
   share: "/audio/share.mp3",
+  close: "/audio/close.mp3",
 } as const;
 
-let enabled = false;
+export type MusicTrack = "lobby" | "build" | "market";
+const MUSIC_VOLUME: Record<MusicTrack, number> = { lobby: 0.26, build: 0.26, market: 0.44 };
+
+let enabled = readPreference();
 let unlocked = false;
+/** The track that should be playing right now, or null for silence. */
+let musicWanted: MusicTrack | null = null;
+let currentTrack: MusicTrack | null = null;
 let music: HTMLAudioElement | null = null;
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
-function wantsSound(): boolean {
+function readPreference(): boolean {
   try {
-    return localStorage.getItem(KEY) === "on";
+    return localStorage.getItem(KEY) !== "off";
   } catch {
-    return false;
+    return true;
   }
 }
 
 function ensureMusic() {
   if (!music) {
-    music = new Audio(FILES.music);
+    music = new Audio();
     music.loop = true;
-    music.volume = 0.35;
     music.preload = "auto";
   }
   return music;
 }
 
-export function isSoundEnabled() {
-  return enabled;
+function loadTrack(track: MusicTrack) {
+  const m = ensureMusic();
+  if (currentTrack !== track) {
+    m.src = FILES[track];
+    m.currentTime = 0;
+    currentTrack = track;
+  }
+  m.volume = MUSIC_VOLUME[track];
+  return m;
 }
 
-export function useSoundEnabled(): boolean {
-  return useSyncExternalStore(
+/** Try to start playback; succeeds silently if the browser already trusts this page. */
+function attemptUnlock() {
+  if (unlocked || !enabled) return;
+  const m = loadTrack(musicWanted ?? "lobby");
+  m.play()
+    .then(() => {
+      unlocked = true;
+      if (!musicWanted) {
+        m.pause();
+        m.currentTime = 0;
+      }
+      notify();
+    })
+    .catch(() => {
+      /* blocked until a gesture */
+    });
+}
+
+function onGesture() {
+  if (!enabled || unlocked) return;
+  attemptUnlock();
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pointerdown", onGesture, true);
+  window.addEventListener("keydown", onGesture, true);
+}
+
+export function useSoundState(): { enabled: boolean; unlocked: boolean } {
+  const snap = useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    () => enabled,
+    () => (enabled ? (unlocked ? "on" : "blocked") : "off"),
   );
+  return { enabled: snap !== "off", unlocked: snap === "on" };
 }
 
-/** Call from a click handler. */
+/** Called from the toggle button (a gesture, so it also unlocks). */
 export function setSoundEnabled(on: boolean) {
   enabled = on;
   try {
@@ -58,68 +104,153 @@ export function setSoundEnabled(on: boolean) {
   } catch {
     /* ignore */
   }
-  if (on) {
-    unlocked = true;
-    // A silent play/pause inside the gesture unlocks later programmatic plays.
-    const m = ensureMusic();
-    m.play().then(() => { if (!musicWanted) m.pause(); }).catch(() => {});
-    if (musicWanted) playMusic();
-  } else {
-    stopMusic();
-  }
+  if (on) attemptUnlock();
+  else stopMusic();
   notify();
 }
 
-let musicWanted = false;
-
-export function playMusic() {
-  musicWanted = true;
-  if (!enabled || !unlocked) return;
-  const m = ensureMusic();
-  if (m.paused) m.play().catch(() => {});
+/** Switch to a track (or null for silence). Fades the old one out first. */
+export function setMusic(track: MusicTrack | null) {
+  if (track === musicWanted) return;
+  const previous = musicWanted;
+  musicWanted = track;
+  if (!track) {
+    fadeOut();
+    return;
+  }
+  if (!enabled) return;
+  if (!unlocked) {
+    attemptUnlock();
+    return;
+  }
+  if (previous && music && !music.paused) {
+    fadeOut(() => startTrack(track));
+  } else {
+    startTrack(track);
+  }
 }
 
-export function stopMusic() {
-  musicWanted = false;
-  if (!music || music.paused) return;
-  // Short fade so the loop doesn't cut off harshly.
+function startTrack(track: MusicTrack) {
+  if (musicWanted !== track) return;
+  const m = loadTrack(track);
+  m.play().catch(() => {});
+}
+
+function fadeOut(done?: () => void) {
+  if (!music || music.paused) {
+    done?.();
+    return;
+  }
   const m = music;
   const start = m.volume;
   const t0 = performance.now();
-  const fade = () => {
+  const step = () => {
     const p = Math.min(1, (performance.now() - t0) / 700);
     m.volume = start * (1 - p);
-    if (p < 1 && !musicWanted) requestAnimationFrame(fade);
-    else if (!musicWanted) {
+    if (p < 1) requestAnimationFrame(step);
+    else {
       m.pause();
       m.currentTime = 0;
       m.volume = start;
-    } else m.volume = start;
+      done?.();
+    }
   };
-  requestAnimationFrame(fade);
+  requestAnimationFrame(step);
 }
 
-export function sfx(name: "funded" | "share", volume = 0.9) {
+export function stopMusic() {
+  setMusic(null);
+}
+
+export function sfx(name: "funded" | "share" | "close", volume = 0.9) {
   if (!enabled || !unlocked) return;
+  if (volume > 1) {
+    playBoosted(name, volume);
+    return;
+  }
   const a = new Audio(FILES[name]);
   a.volume = volume;
   a.play().catch(() => {});
 }
 
-/** Remembers the user's earlier choice, but playback still needs one click. */
-export function useSoundPreference(): { remembered: boolean } {
-  const [remembered] = useState(wantsSound);
-  return { remembered };
+/** Web Audio lets a one-shot go past the element volume ceiling of 1.0. */
+let audioCtx: AudioContext | null = null;
+const buffers = new Map<string, Promise<AudioBuffer>>();
+
+function getBuffer(name: keyof typeof FILES): Promise<AudioBuffer> {
+  if (!audioCtx) audioCtx = new AudioContext();
+  const ctx = audioCtx;
+  let p = buffers.get(name);
+  if (!p) {
+    p = fetch(FILES[name])
+      .then((r) => r.arrayBuffer())
+      .then((b) => ctx.decodeAudioData(b));
+    buffers.set(name, p);
+  }
+  return p;
 }
 
-/** Keeps the music in sync with the market phase. */
-export function useMarketMusic(marketOpen: boolean) {
-  const soundOn = useSoundEnabled();
+function playBoosted(name: keyof typeof FILES, gain: number) {
+  try {
+    getBuffer(name)
+      .then((buffer) => {
+        const ctx = audioCtx!;
+        if (ctx.state === "suspended") ctx.resume().catch(() => {});
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        const g = ctx.createGain();
+        g.gain.value = gain;
+        src.connect(g).connect(ctx.destination);
+        src.start();
+      })
+      .catch(() => {
+        const a = new Audio(FILES[name]);
+        a.volume = 1;
+        a.play().catch(() => {});
+      });
+  } catch {
+    const a = new Audio(FILES[name]);
+    a.volume = 1;
+    a.play().catch(() => {});
+  }
+}
+
+/** How long before the market timer ends the closing boom starts, so its peak lands on 0:00. */
+export const CLOSE_LEAD_MS = 2000;
+export const CLOSE_GAIN = 1.5;
+
+/**
+ * Picks the track for the phase: lobby, Round 1, open market; silence otherwise.
+ * The closing boom is scheduled CLOSE_LEAD_MS before the market timer ends;
+ * if the host closes early it plays at once.
+ */
+export function usePhaseMusic(track: MusicTrack | null, marketOpen: boolean, marketEndsAt: number | null) {
+  const { enabled: soundOn, unlocked: ok } = useSoundState();
   const wasOpen = useRef(false);
+  const closePlayedFor = useRef<number | null>(null);
   useEffect(() => {
-    if (marketOpen && soundOn) playMusic();
-    else if (!marketOpen && wasOpen.current) stopMusic();
+    setMusic(soundOn ? track : null);
+  }, [track, soundOn, ok]);
+  useEffect(() => {
+    if (!marketOpen || marketEndsAt == null) return;
+    const delay = marketEndsAt - serverNow() - CLOSE_LEAD_MS;
+    if (delay < -CLOSE_LEAD_MS) return; // the timer already ran out
+    const t = setTimeout(() => {
+      closePlayedFor.current = marketEndsAt;
+      sfx("close", CLOSE_GAIN);
+    }, Math.max(0, delay));
+    return () => clearTimeout(t);
+  }, [marketOpen, marketEndsAt]);
+  useEffect(() => {
+    if (!marketOpen && wasOpen.current && closePlayedFor.current !== marketEndsAt) {
+      closePlayedFor.current = marketEndsAt;
+      sfx("close", CLOSE_GAIN);
+    }
     wasOpen.current = marketOpen;
-  }, [marketOpen, soundOn]);
-  useEffect(() => () => stopMusic(), []);
+  }, [marketOpen, marketEndsAt]);
+  useEffect(() => {
+    // Decode the boom ahead of time so it starts without delay.
+    if (soundOn && ok) getBuffer("close").catch(() => {});
+  }, [soundOn, ok]);
+  useEffect(() => () => setMusic(null), []);
 }

@@ -11,8 +11,9 @@ import { BotRunner } from "../server/src/bots";
 const out = process.argv[2] || "/tmp/funded-test/game.json";
 /** "market" stops 30 s into a live market so the server keeps it running. */
 const mode = process.argv[3] || "reveal";
-const marketSeconds = mode === "market" ? 30 : 180;
-let now = Date.now() - (mode === "market" ? 45 + 30 : 10 * 60) * 1000;
+/** In market mode an optional 4th argument sets how many seconds have already been simulated. */
+const marketSeconds = mode === "market" ? Number(process.argv[4] || 30) : 180;
+let now = Date.now() - (mode === "market" ? 45 + marketSeconds : 10 * 60) * 1000;
 const store = new GameStore();
 store.setSettings({ teamCount: 7 }, now);
 const anna = store.join({ name: "Anna", teamId: "t1" }, now);
@@ -52,7 +53,11 @@ for (let i = 0; i < 40; i++) {
 }
 store.setPhase("MARKET", now);
 const launchedNow = Object.values(store.game.teams).filter((t) => t.launchedAt != null && t.id !== "t2").map((t) => t.id);
-store.setPledge(cas.id, { t2: 2, [launchedNow[0] ?? "t3"]: 3 }, now + 1000);
+try {
+  store.setPledge(cas.id, { t2: 2, [launchedNow[0] ?? "t3"]: 3 }, now + 1000);
+} catch {
+  store.setPledge(cas.id, { t2: 2 }, now + 1000);
+}
 for (let i = 0; i < marketSeconds; i++) {
   now += 1000;
   store.tick(now);
@@ -70,4 +75,4 @@ for (let i = 0; i < marketSeconds; i++) {
 if (mode !== "market") store.setPhase("REVEAL", now);
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify(store.game));
-console.log(`wrote ${out}: ${Object.keys(store.game.players).length} players, phase ${store.game.phase}`);
+console.log(`wrote ${out}: ${Object.keys(store.game.players).length} players, phase ${store.game.phase}, anna=${anna.id} cas=${cas.id}`);

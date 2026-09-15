@@ -21,6 +21,8 @@ export const CONFIG = {
   nameMaxLength: 20,
   maxTeams: 8,
   minTeams: 4,
+  /** Players per team; 0 means no limit. */
+  maxPerTeam: 0,
   defaultTeams: 7,
   captainTimeoutMs: 20000,
   /** How long the big screen shows the "Just launched" banner. */
@@ -33,6 +35,7 @@ export const CONFIG = {
 
 export const ERROR_MESSAGES = {
   OVER_BUDGET: "You have no coins left",
+  NO_REFUND: "Placed coins can't be taken back",
   CAMPAIGN_LOCKED: "This campaign hasn't launched yet",
   OWN_NETWORK_SHARE: "Your team chose to share, not to back",
   OWN_CAMPAIGN: "You can't share your own campaign",
@@ -45,6 +48,7 @@ export const ERROR_MESSAGES = {
   INVALID: "Invalid input",
   NOT_HOST: "Host only",
   BAD_PIN: "Wrong PIN",
+  TEAM_FULL: "This team is full",
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_MESSAGES;
