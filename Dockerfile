@@ -18,8 +18,8 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/shared ./shared
 COPY --from=build /app/server ./server
 COPY --from=build /app/client/dist ./client/dist
+# Persisted game state lives here; mount a platform volume at /app/data to survive redeploys.
 RUN mkdir -p /app/data
-VOLUME ["/app/data"]
 EXPOSE 3000
 ENV PORT=3000
 # HOST_PIN must be set by the platform.
