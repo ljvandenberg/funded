@@ -14,6 +14,7 @@ import { act, emit, getJoinUrl, getStoredHostPin, setHostPin, useConnected, useG
 import { pushToast } from "../lib/toast";
 import { Countdown } from "../components/Countdown";
 import { QR } from "../components/QR";
+import { StrategyChips } from "../components/Strategy";
 
 export function Host() {
   const game = useGame();
@@ -239,11 +240,7 @@ function Console({ game }: { game: Game }) {
                       </select>
                     </label>
                   )}
-                  {game.phase !== "LOBBY" && (
-                    <p className="tiny muted">
-                      {c.goalLevel} · {c.rewardsLevel} · {c.network} · {c.prep}
-                    </p>
-                  )}
+                  {game.phase !== "LOBBY" && <StrategyChips c={c} compact />}
                 </div>
               );
             })}

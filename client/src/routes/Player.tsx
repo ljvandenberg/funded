@@ -10,6 +10,7 @@ import {
   playersOfTeam,
   revealView,
   teamIsFull,
+  decisionTone,
   sortTeamIds,
   totalAlloc,
   type CampaignResult,
@@ -335,11 +336,12 @@ function DecisionGroup({
             key={o.value}
             className="option"
             aria-pressed={value === o.value}
+            data-tone={decisionTone(field, o.value) ?? undefined}
             onClick={() => onSelect?.(o.value)}
             disabled={disabled}
             tabIndex={onSelect ? 0 : -1}
           >
-            <span className="title">{o.title}</span>
+            <span className="title"><span className={`swatch ${decisionTone(field, o.value) ?? ""}`} aria-hidden />{o.title}</span>
             <span className="check">{value === o.value ? "✓" : ""}</span>
             <span className="effect">{o.effect}</span>
           </button>

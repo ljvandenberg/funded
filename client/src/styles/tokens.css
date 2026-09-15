@@ -68,3 +68,15 @@
     --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
   }
 }
+
+/* Strategy colours: one hue per decision, same in both themes. */
+:root {
+  --s-goal-low: #2fbf71;
+  --s-goal-medium: #f0a51c;
+  --s-goal-high: #ff5c7a;
+  --s-rewards-generous: #ff8c42;
+  --s-network-share: #1fb5ab;
+  --s-network-back: #4c8dff;
+  --s-prep-audience: #8b7bff;
+  --s-muted: #8a93a0;
+}

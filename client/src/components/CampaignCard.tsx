@@ -1,10 +1,10 @@
 import { formatClock, type CampaignResult } from "@funded/shared";
 import { Badges } from "./Badge";
+import { StrategyChips } from "./Strategy";
 import { ProgressBar } from "./ProgressBar";
 
 export type ShareState = "available" | "shared-this" | "used" | "own" | "locked";
 
-const GOAL_LABEL = { low: "Low goal", medium: "Medium goal", high: "High goal" } as const;
 
 export function CampaignCard({
   c,
@@ -38,15 +38,15 @@ export function CampaignCard({
   return (
     <article className={`card campaign${c.pinned ? " pinned" : ""}${locked ? " locked" : ""}${isOwn ? " own" : ""}${justLaunched ? " just-launched" : ""}`}>
       <div className="row between">
-        <Badges badges={c.badges} sharedBy={c.sharedBy} own={isOwn} />
+        <Badges badges={c.badges.filter((b) => b === "New")} sharedBy={c.sharedBy} own={isOwn} />
         {justLaunched && <span className="live-pill">Live</span>}
       </div>
+      <StrategyChips c={c} />
       <div>
         <div className="name">{c.name}</div>
         <p className="pitch">{c.pitch}</p>
       </div>
       <div className="meta">
-        <span>{GOAL_LABEL[c.goalLevel]} · {c.multiplier.toFixed(1)}× if funded</span>
         <span>{c.backers} backers</span>
         <span>{c.shares} shares</span>
       </div>

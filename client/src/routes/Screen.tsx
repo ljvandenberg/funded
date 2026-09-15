@@ -16,11 +16,11 @@ import { getJoinUrl, useGame, useNow } from "../lib/socket";
 import { useCountUp, useFlip, useRisingEdge } from "../lib/motion";
 import { useFeed, type FeedEvent } from "../lib/feed";
 import { setSoundEnabled, sfx, usePhaseMusic, useSoundState, type MusicTrack } from "../lib/sound";
-import { Badges } from "../components/Badge";
 import { Countdown } from "../components/Countdown";
 import { ProgressBar } from "../components/ProgressBar";
 import { QR } from "../components/QR";
 import { Confetti } from "../components/Confetti";
+import { StrategyChips } from "../components/Strategy";
 
 export function Screen() {
   const game = useGame();
@@ -40,6 +40,17 @@ export function Screen() {
           ? "market"
           : null;
   usePhaseMusic(track, marketOpen, game?.phase === "MARKET" ? game.phaseEndsAt : null);
+  // A shot for every campaign revealed, a fanfare for each podium.
+  const prevStep = useRef(0);
+  useEffect(() => {
+    const step = game?.phase === "REVEAL" ? game.revealStep : 0;
+    const teams = game ? Object.keys(game.teams).length : 0;
+    if (game?.phase === "REVEAL" && step > prevStep.current) {
+      if (step <= teams) sfx("reveal", 0.9);
+      else if (step === teams + 1 || step === teams + 2) sfx("fanfare", 0.9);
+    }
+    prevStep.current = step;
+  }, [game]);
 
   const toggleFs = () => {
     if (document.fullscreenElement) document.exitFullscreen();
@@ -235,7 +246,6 @@ function BuildScreen({ game }: { game: Game }) {
 
 // ---------------------------------------------------------------- MARKET (race)
 
-const GOAL_SHORT = { low: "Low", medium: "Medium", high: "High" } as const;
 const TRACK_MAX = 1.3; // the track runs to 130% of the goal
 
 function MarketScreen({ game }: { game: Game }) {
@@ -327,8 +337,7 @@ function Lane({ c, rank, now, game, goalX }: { c: CampaignResult; rank: number; 
         <div className="lane-name">{c.name}</div>
         <div className="lane-meta">
           <span className="lane-team">Team {c.teamNumber}</span>
-          <span>{GOAL_SHORT[c.goalLevel]} goal · {c.multiplier.toFixed(1)}×</span>
-          <Badges badges={c.badges.filter((b) => b !== "New")} />
+          <StrategyChips c={c} compact />
         </div>
       </div>
       <div className="lane-track">
@@ -363,9 +372,6 @@ function Lane({ c, rank, now, game, goalX }: { c: CampaignResult; rank: number; 
 // ---------------------------------------------------------------- REVEAL
 
 const GOAL_WORD = { low: "Low", medium: "Medium", high: "High" } as const;
-const REWARD_WORD = { modest: "Modest", generous: "Generous" } as const;
-const NETWORK_WORD = { back: "Friends back", share: "Friends share" } as const;
-const PREP_WORD = { now: "Launched now", audience: "Built audience" } as const;
 
 function Stat({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "good" | "bad" | "coin" }) {
   return (
@@ -514,7 +520,7 @@ function RevealScreen({ game }: { game: Game }) {
                     <td className="bold display">{c.name}</td>
                     <td className="num">{c.teamNumber}</td>
                     <td>{OBJECTIVE_LABEL[c.objective]}</td>
-                    <td className="num">{c.goal} <span className="muted small">{GOAL_WORD[c.goalLevel]}</span></td>
+                    <td className={`num goal-${c.goalLevel}`}>{c.goal} <span className="small">{GOAL_WORD[c.goalLevel]}</span></td>
                     <td className="num">{c.raised}</td>
                     <td className={c.funded ? "good bold" : "bad bold"}>{c.funded ? "FUNDED" : "NOT FUNDED"}</td>
                     <td className="num">{c.ownSharePct}%</td>
@@ -555,7 +561,7 @@ function RevealScreen({ game }: { game: Game }) {
               {latest && c.funded && <Confetti />}
               <div>
                 <div className="name display" style={{ fontSize: "1.7rem" }}>{c.name} <span className="muted" style={{ fontSize: "1rem", fontWeight: 500 }}>Team {c.teamNumber}</span></div>
-                <Badges badges={c.badges.filter((b) => b !== "New")} />
+                <StrategyChips c={c} />
               </div>
               <ProgressBar progress={c.progress} funded={c.funded} big noStamp />
               <div className="row between">
@@ -575,12 +581,6 @@ function RevealScreen({ game }: { game: Game }) {
                 <Stat label="shares" value={c.shares} />
                 <Stat label="net" value={c.net} tone="coin" />
                 <Stat label="score" value={c.score} tone={c.funded ? "good" : "bad"} />
-              </div>
-              <div className="choices">
-                <span>{GOAL_WORD[c.goalLevel]} goal · {c.multiplier.toFixed(1)}×</span>
-                <span>{REWARD_WORD[c.rewardsLevel]} rewards</span>
-                <span>{NETWORK_WORD[c.network]}</span>
-                <span>{PREP_WORD[c.prep]}</span>
               </div>
             </div>
           );
@@ -626,7 +626,10 @@ function Podium({ items }: { items: PodiumItem[] }) {
           {item ? (
             <div className="podium-label rise" style={{ animationDelay: `${delay + 0.35}s` }}>
               {place === 1 && celebrate && <Confetti big count={40} />}
-              <div className="podium-name display">{item.title}</div>
+              <div className={`podium-medal medal-${place}`}>
+                <span className="medal-rank">{place === 1 ? "1st" : place === 2 ? "2nd" : "3rd"}</span>
+                <div className="podium-name display">{item.title}</div>
+              </div>
               <div className="podium-sub muted">{item.sub}</div>
               <div className="podium-value num">
                 <PodiumValue value={item.value} decimals={item.decimals ?? 0} delay={delay + 0.35} />
