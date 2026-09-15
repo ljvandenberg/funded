@@ -89,6 +89,7 @@ Every screen computes its numbers with the same pure function, `computeResults()
 | 10:00 | **Back to lobby** to play again with the same players, or **Open lobby (reset)** for a new class. | |
 
 Tips:
+- Sound on the big screen: click **Sound off** in the bottom-right corner of `/screen` once (browsers only allow audio after a click). The market loop plays while Round 2 is open, a cash register rings when a campaign gets funded, and a chirp plays on every share. Phones and the host console stay silent. Audio files live in `client/public/audio/`.
 - The host console can reassign captains, kick players and add 30 bots for a demo.
 - Bots spread their five coins over most of the market (first coin after 5–40 s, then one every 12–40 s) and share once between 20 s and 120 s. The tighter 4–12 s pacing from the design spec emptied all bot wallets before audience-building campaigns launched, which hid that mechanic in demos.
 - Timers do not auto-advance; the host always presses the next button.

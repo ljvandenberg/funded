@@ -89,7 +89,10 @@ export interface Case {
   name: string;
   blurb: string;
   objective: Objective;
+  /** Why the founders are crowdfunding (team only). */
   objectiveText: string;
+  /** The metric the team is scored on, shown prominently. */
+  scoreOn: string;
 }
 
 export type Badge = "Video" | "Top rewards" | "Spread the word" | "New";

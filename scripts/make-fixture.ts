@@ -9,7 +9,10 @@ import { GameStore } from "../server/src/game";
 import { BotRunner } from "../server/src/bots";
 
 const out = process.argv[2] || "/tmp/funded-test/game.json";
-let now = Date.now() - 10 * 60 * 1000;
+/** "market" stops 30 s into a live market so the server keeps it running. */
+const mode = process.argv[3] || "reveal";
+const marketSeconds = mode === "market" ? 30 : 180;
+let now = Date.now() - (mode === "market" ? 45 + 30 : 10 * 60) * 1000;
 const store = new GameStore();
 store.setSettings({ teamCount: 7 }, now);
 const anna = store.join({ name: "Anna", teamId: "t1" }, now);
@@ -32,24 +35,39 @@ store.setDecision(cas.id, "network", "back", now);
 store.setDecision(cas.id, "prep", "now", now);
 store.setPitch(cas.id, "The party game that tests how Dutch you really are.", now);
 store.lockIn(cas.id, true, now);
+if (mode === "build") {
+  // Stop right after Round 1 starts, with the timer running for real.
+  const g = store.game;
+  g.phaseStartedAt = Date.now();
+  g.phaseEndsAt = Date.now() + g.settings.buildSeconds * 1000;
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, JSON.stringify(g));
+  console.log(`wrote ${out}: phase BUILD, anna=${anna.id} bram=${Object.values(g.players).find((p) => p.name === "Bram")!.id}`);
+  process.exit(0);
+}
 for (let i = 0; i < 40; i++) {
   now += 1000;
   store.tick(now);
   bots.tick(now);
 }
 store.setPhase("MARKET", now);
-store.setPledge(cas.id, { t2: 2, t4: 3 }, now + 1000);
-for (let i = 0; i < 180; i++) {
+const launchedNow = Object.values(store.game.teams).filter((t) => t.launchedAt != null && t.id !== "t2").map((t) => t.id);
+store.setPledge(cas.id, { t2: 2, [launchedNow[0] ?? "t3"]: 3 }, now + 1000);
+for (let i = 0; i < marketSeconds; i++) {
   now += 1000;
   store.tick(now);
   bots.tick(now);
-  if (i === 60) {
-    store.setPledge(anna.id, { t3: 3, t5: 2 }, now);
-    store.share(cas.id, "t1", now);
-    store.share(anna.id, "t4", now);
+  if (i === 45) {
+    try {
+      store.setPledge(anna.id, { t3: 3, t5: 2 }, now);
+      store.share(cas.id, "t1", now);
+      store.share(anna.id, "t4", now);
+    } catch {
+      /* depends on random bot choices */
+    }
   }
 }
-store.setPhase("REVEAL", now);
+if (mode !== "market") store.setPhase("REVEAL", now);
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify(store.game));
 console.log(`wrote ${out}: ${Object.keys(store.game.players).length} players, phase ${store.game.phase}`);

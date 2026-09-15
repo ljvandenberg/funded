@@ -208,7 +208,7 @@ function Console({ game }: { game: Game }) {
               const c = results.campaigns[id];
               const noCaptain = !team.captainId;
               return (
-                <div key={id} className={`card stack tight${noCaptain && members.length ? " coin" : ""}`}>
+                <div key={id} className={`card stack tight${noCaptain && members.length ? " amber" : ""}`}>
                   <div className="row between">
                     <span className="display bold">Team {id.slice(1)} · {CASE_BY_ID[team.caseId].name}</span>
                     {game.phase === "BUILD" && <span className={`chip${team.lockedIn ? " you" : ""}`}>{team.lockedIn ? "Locked in ✓" : "Deciding…"}</span>}

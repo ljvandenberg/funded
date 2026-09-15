@@ -60,8 +60,10 @@ export function Player() {
     return () => clearTimeout(t);
   }, [missing]);
 
+  // Phones always use the light theme, whatever the system setting.
   useEffect(() => {
-    document.documentElement.removeAttribute("data-theme");
+    document.documentElement.setAttribute("data-theme", "light");
+    return () => document.documentElement.removeAttribute("data-theme");
   }, []);
 
   if (!game) {
@@ -261,13 +263,14 @@ function decisionOptions(game: Game): Record<DecisionField, OptionDef[]> {
   const s = game.settings;
   const total = estimateTotalCoins(game);
   const players = Object.keys(game.players).length;
-  const g = (lvl: "low" | "medium" | "high") => `about ${goalCoins(lvl, total, s)} coins with ${players} players`;
+  const pct = (lvl: "low" | "medium" | "high") => Math.round(s.goalFractions[lvl] * 100);
+  const goalOpt = (lvl: "low" | "medium" | "high", title: string) => ({
+    value: lvl,
+    title: `${title} · ${goalCoins(lvl, total, s)} coins`,
+    effect: `${pct(lvl)}% of all coins in play (${players} players) · backers get ${s.multipliers[lvl].toFixed(1)}× if funded`,
+  });
   return {
-    goal: [
-      { value: "low", title: "Low", effect: `${g("low")} · backers get ${s.multipliers.low.toFixed(1)}× if funded` },
-      { value: "medium", title: "Medium", effect: `${g("medium")} · backers get ${s.multipliers.medium.toFixed(1)}× if funded` },
-      { value: "high", title: "High", effect: `${g("high")} · backers get ${s.multipliers.high.toFixed(1)}× if funded` },
-    ],
+    goal: [goalOpt("low", "Low"), goalOpt("medium", "Medium"), goalOpt("high", "High")],
     rewards: [
       { value: "modest", title: "Modest rewards", effect: `Reward costs eat ${Math.round(s.rewardCost.modest * 100)}% of what you raise.` },
       {
@@ -350,9 +353,13 @@ function CaseCard({ team, showObjective }: { team: Team; showObjective: boolean 
       <div className="display" style={{ fontSize: "1.6rem", fontWeight: 800 }}>{c.name}</div>
       <p>{c.blurb}</p>
       {showObjective && (
-        <div className="card flat coin stack tight" style={{ marginTop: 6 }}>
-          <span className="tiny bold">Your objective (only your team sees this)</span>
-          <p className="small">{c.objectiveText}</p>
+        <div className="objective-box" style={{ marginTop: 6 }}>
+          <span className="objective-label">Your objective (only your team sees this)</span>
+          <p>{c.objectiveText}</p>
+          <div className="score-on">
+            <span className="score-on-label">You score on</span>
+            <strong>{c.scoreOn}</strong>
+          </div>
         </div>
       )}
     </div>
