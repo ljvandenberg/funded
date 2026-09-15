@@ -14,7 +14,7 @@ import { act, emit, getJoinUrl, getStoredHostPin, setHostPin, useConnected, useG
 import { pushToast } from "../lib/toast";
 import { Countdown } from "../components/Countdown";
 import { QR } from "../components/QR";
-import { StrategyChips } from "../components/Strategy";
+import { ObjectiveTag } from "../components/Objective";
 
 export function Host() {
   const game = useGame();
@@ -240,7 +240,12 @@ function Console({ game }: { game: Game }) {
                       </select>
                     </label>
                   )}
-                  {game.phase !== "LOBBY" && <StrategyChips c={c} compact />}
+                  <div className="row wrap" style={{ gap: 6 }}>
+                    <ObjectiveTag objective={c.objective} small />
+                    {game.phase !== "LOBBY" && (
+                      <span className="tiny muted">{c.goalLevel} · {c.rewardsLevel} · {c.network} · {c.prep}</span>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -261,10 +266,23 @@ function Settings({ game }: { game: Game }) {
     launchDelaySeconds: s.launchDelaySeconds,
     coinsPerPlayer: s.coinsPerPlayer,
     maxPerTeam: s.maxPerTeam,
+    goalLow: Math.round(s.goalFractions.low * 100),
+    goalMedium: Math.round(s.goalFractions.medium * 100),
+    goalHigh: Math.round(s.goalFractions.high * 100),
   });
   useEffect(() => {
-    setForm({ teamCount: s.teamCount, buildSeconds: s.buildSeconds, marketSeconds: s.marketSeconds, launchDelaySeconds: s.launchDelaySeconds, coinsPerPlayer: s.coinsPerPlayer, maxPerTeam: s.maxPerTeam });
-  }, [s.teamCount, s.buildSeconds, s.marketSeconds, s.launchDelaySeconds, s.coinsPerPlayer, s.maxPerTeam]);
+    setForm({
+      teamCount: s.teamCount,
+      buildSeconds: s.buildSeconds,
+      marketSeconds: s.marketSeconds,
+      launchDelaySeconds: s.launchDelaySeconds,
+      coinsPerPlayer: s.coinsPerPlayer,
+      maxPerTeam: s.maxPerTeam,
+      goalLow: Math.round(s.goalFractions.low * 100),
+      goalMedium: Math.round(s.goalFractions.medium * 100),
+      goalHigh: Math.round(s.goalFractions.high * 100),
+    });
+  }, [s.teamCount, s.buildSeconds, s.marketSeconds, s.launchDelaySeconds, s.coinsPerPlayer, s.maxPerTeam, s.goalFractions.low, s.goalFractions.medium, s.goalFractions.high]);
 
   const field = (key: keyof typeof form, label: string, min: number, max: number) => (
     <label className="field small">
@@ -292,7 +310,24 @@ function Settings({ game }: { game: Game }) {
         {field("marketSeconds", "Market (s)", 30, 1800)}
         {field("launchDelaySeconds", "Launch delay (s)", 0, 600)}
       </div>
-      <button className="btn" disabled={!editable} onClick={() => act("host:setSettings", form).then((a) => a.ok && pushToast("Settings saved", "success"))}>
+      <h3 className="small" style={{ marginTop: 4 }}>Goal sizes <span className="tiny muted">(% of all coins in play)</span></h3>
+      <div className="settings-grid three">
+        {field("goalLow", "Low goal %", 1, 100)}
+        {field("goalMedium", "Medium goal %", 1, 100)}
+        {field("goalHigh", "High goal %", 1, 100)}
+      </div>
+      <p className="tiny muted num">
+        With {Object.keys(game.players).length} players ({Object.keys(game.players).length * form.coinsPerPlayer} coins): goals of{" "}
+        {Math.ceil((form.goalLow / 100) * Object.keys(game.players).length * form.coinsPerPlayer)} / {Math.ceil((form.goalMedium / 100) * Object.keys(game.players).length * form.coinsPerPlayer)} / {Math.ceil((form.goalHigh / 100) * Object.keys(game.players).length * form.coinsPerPlayer)} coins.
+      </p>
+      <button
+        className="btn"
+        disabled={!editable}
+        onClick={() => {
+          const { goalLow, goalMedium, goalHigh, ...rest } = form;
+          act("host:setSettings", { ...rest, goalFractions: { low: goalLow / 100, medium: goalMedium / 100, high: goalHigh / 100 } }).then((a) => a.ok && pushToast("Settings saved", "success"));
+        }}
+      >
         Save settings
       </button>
     </div>

@@ -90,6 +90,17 @@ describe("join and captains", () => {
     expect(Object.values(store.game.players).every((p) => !p.isBot)).toBe(true);
   });
 
+  it("lets the host tune the goal percentages, kept in order", () => {
+    const store = new GameStore();
+    store.setSettings({ goalFractions: { low: 0.1, medium: 0.2, high: 0.3 } }, T0);
+    expect(store.game.settings.goalFractions).toEqual({ low: 0.1, medium: 0.2, high: 0.3 });
+    store.setSettings({ goalFractions: { low: 0.25 } as never }, T0);
+    expect(store.game.settings.goalFractions).toEqual({ low: 0.25, medium: 0.25, high: 0.3 });
+    store.setSettings({ goalFractions: { low: 0, high: 5 } as never }, T0);
+    expect(store.game.settings.goalFractions.low).toBe(0.01);
+    expect(store.game.settings.goalFractions.high).toBe(1);
+  });
+
   it("caps players per team when the host sets a limit", () => {
     const store = new GameStore();
     store.setSettings({ teamCount: 4, maxPerTeam: 2 }, T0);

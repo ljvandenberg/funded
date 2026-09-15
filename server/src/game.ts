@@ -374,6 +374,18 @@ export class GameStore {
       s.launchDelaySeconds = int(partial.launchDelaySeconds, 0, 600, s.launchDelaySeconds);
     if (partial.coinsPerPlayer != null) s.coinsPerPlayer = int(partial.coinsPerPlayer, 1, 20, s.coinsPerPlayer);
     if (partial.maxPerTeam != null) s.maxPerTeam = int(partial.maxPerTeam, 0, 50, s.maxPerTeam);
+    if (partial.goalFractions && typeof partial.goalFractions === "object") {
+      // Percent of all coins in play per goal level, 1..100, kept in order low ≤ medium ≤ high.
+      const pct = (v: unknown, fallback: number) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? Math.min(1, Math.max(0.01, Math.round(n * 100) / 100)) : fallback;
+      };
+      const gf = partial.goalFractions as Partial<Settings["goalFractions"]>;
+      const low = pct(gf.low ?? s.goalFractions.low, s.goalFractions.low);
+      const medium = Math.max(low, pct(gf.medium ?? s.goalFractions.medium, s.goalFractions.medium));
+      const high = Math.max(medium, pct(gf.high ?? s.goalFractions.high, s.goalFractions.high));
+      s.goalFractions = { low, medium, high };
+    }
     if (partial.pinSeconds != null) s.pinSeconds = int(partial.pinSeconds, 5, 120, s.pinSeconds);
     if (partial.teamCount != null) {
       const count = int(partial.teamCount, CONFIG.minTeams, CONFIG.maxTeams, s.teamCount);

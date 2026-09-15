@@ -3,7 +3,6 @@ import { CASE_BY_ID, OBJECTIVE_LABEL } from "./cases";
 import type {
   Badge,
   CampaignResult,
-  DecisionField,
   Decisions,
   Game,
   GoalLevel,
@@ -403,47 +402,4 @@ export function revealView(game: Game): RevealView {
     showLessons: step >= n + 3,
     done: step >= n + 3,
   };
-}
-
-/** Colour-coded summary of a campaign's four strategy choices, used on every screen. */
-export type StrategyTone =
-  | "goal-low" | "goal-medium" | "goal-high"
-  | "rewards-modest" | "rewards-generous"
-  | "network-back" | "network-share"
-  | "prep-now" | "prep-audience";
-
-export interface StrategyChip {
-  key: "goal" | "rewards" | "network" | "prep";
-  tone: StrategyTone;
-  label: string;
-  short: string;
-}
-
-export function strategyChips(c: {
-  goalLevel: GoalLevel;
-  rewardsLevel: RewardsLevel;
-  network: NetworkChoice;
-  prep: PrepChoice;
-  multiplier: number;
-  launched?: boolean;
-}): StrategyChip[] {
-  const goalWord = { low: "Low", medium: "Medium", high: "High" }[c.goalLevel];
-  return [
-    { key: "goal", tone: `goal-${c.goalLevel}`, label: `${goalWord} goal · ${c.multiplier.toFixed(1)}×`, short: `${goalWord} · ${c.multiplier.toFixed(1)}×` },
-    c.rewardsLevel === "generous"
-      ? { key: "rewards", tone: "rewards-generous", label: "Top rewards", short: "Top rewards" }
-      : { key: "rewards", tone: "rewards-modest", label: "Modest rewards", short: "Modest" },
-    c.network === "share"
-      ? { key: "network", tone: "network-share", label: "Spread the word", short: "Share" }
-      : { key: "network", tone: "network-back", label: "Friends back", short: "Back" },
-    c.prep === "audience"
-      ? { key: "prep", tone: "prep-audience", label: c.launched === false ? "Building audience" : "Video", short: "Video" }
-      : { key: "prep", tone: "prep-now", label: "Launched now", short: "Now" },
-  ];
-}
-
-/** The tone for a single decision value, for colouring option buttons while deciding. */
-export function decisionTone(field: DecisionField, value: string | null): StrategyTone | null {
-  if (!value) return null;
-  return `${field}-${value}` as StrategyTone;
 }

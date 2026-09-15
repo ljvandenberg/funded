@@ -515,51 +515,77 @@ select.input { appearance: auto; }
 .ticker.vertical .ticker-items { overflow: hidden; }
 @media (max-width: 1000px) { .race-side { min-height: 320px; } }
 
-/* ---------- strategy chips ---------- */
-.strategy { display: flex; flex-wrap: wrap; gap: 6px; }
-.strat { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: #fff; background: var(--s-muted); white-space: nowrap; }
-.strat::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: rgb(255 255 255 / 0.85); }
-.strategy.compact .strat { height: 18px; padding: 0 7px; font-size: 0.62rem; }
-.strat.goal-low { background: var(--s-goal-low); color: #06301a; }
-.strat.goal-medium { background: var(--s-goal-medium); color: #2b1c00; }
-.strat.goal-high { background: var(--s-goal-high); color: #fff; }
-.strat.rewards-generous { background: var(--s-rewards-generous); color: #2b1200; }
-.strat.rewards-modest { background: transparent; color: var(--muted); border: 1px solid var(--line); }
-.strat.network-share { background: var(--s-network-share); color: #04201e; }
-.strat.network-back { background: var(--s-network-back); color: #fff; }
-.strat.prep-audience { background: var(--s-prep-audience); color: #fff; }
-.strat.prep-now { background: transparent; color: var(--muted); border: 1px solid var(--line); }
-.strat.goal-low::before { background: #06301a; } .strat.goal-medium::before { background: #2b1c00; }
-.strat.rewards-generous::before { background: #2b1200; } .strat.network-share::before { background: #04201e; }
-.strat.rewards-modest::before, .strat.prep-now::before { background: var(--muted); }
-
-/* option buttons take their strategy colour once chosen */
-.option[aria-pressed="true"][data-tone="goal-low"] { border-color: var(--s-goal-low); background: color-mix(in srgb, var(--s-goal-low) 14%, var(--surface)); }
-.option[aria-pressed="true"][data-tone="goal-medium"] { border-color: var(--s-goal-medium); background: color-mix(in srgb, var(--s-goal-medium) 14%, var(--surface)); }
-.option[aria-pressed="true"][data-tone="goal-high"] { border-color: var(--s-goal-high); background: color-mix(in srgb, var(--s-goal-high) 14%, var(--surface)); }
-.option[aria-pressed="true"][data-tone="rewards-generous"] { border-color: var(--s-rewards-generous); background: color-mix(in srgb, var(--s-rewards-generous) 14%, var(--surface)); }
-.option[aria-pressed="true"][data-tone="network-share"] { border-color: var(--s-network-share); background: color-mix(in srgb, var(--s-network-share) 14%, var(--surface)); }
-.option[aria-pressed="true"][data-tone="network-back"] { border-color: var(--s-network-back); background: color-mix(in srgb, var(--s-network-back) 14%, var(--surface)); }
-.option[aria-pressed="true"][data-tone="prep-audience"] { border-color: var(--s-prep-audience); background: color-mix(in srgb, var(--s-prep-audience) 14%, var(--surface)); }
-.option[aria-pressed="true"][data-tone="rewards-modest"], .option[aria-pressed="true"][data-tone="prep-now"] { border-color: var(--s-muted); }
-.option .swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: middle; background: var(--s-muted); }
-.swatch.goal-low { background: var(--s-goal-low); } .swatch.goal-medium { background: var(--s-goal-medium); } .swatch.goal-high { background: var(--s-goal-high); }
-.swatch.rewards-generous { background: var(--s-rewards-generous); } .swatch.network-share { background: var(--s-network-share); }
-.swatch.network-back { background: var(--s-network-back); } .swatch.prep-audience { background: var(--s-prep-audience); }
-
-/* lanes and reveal use the chips in place of the old meta text */
-.lane-meta .strategy { display: contents; }
-.lane .strat { height: 16px; font-size: 0.58rem; padding: 0 6px; }
-.reveal-card .strategy .strat { height: 20px; font-size: 0.66rem; }
-.stats-table td.goal-low { color: var(--s-goal-low); } .stats-table td.goal-medium { color: var(--s-goal-medium); } .stats-table td.goal-high { color: var(--s-goal-high); }
-
-/* ---------- podium medals ---------- */
-.podium-medal { position: relative; display: inline-block; padding: 10px 22px 12px; border-radius: 14px; border: 3px solid; margin-bottom: 6px; box-shadow: 0 8px 26px rgb(0 0 0 / 0.35); }
-.medal-rank { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); padding: 1px 10px; border-radius: 999px; font-family: var(--font-display); font-weight: 800; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: #1a1200; }
-.medal-1 { border-color: #f5c542; background: linear-gradient(180deg, rgb(245 197 66 / 0.28), rgb(245 197 66 / 0.08)); box-shadow: 0 0 0 1px rgb(245 197 66 / 0.5), 0 0 34px rgb(245 197 66 / 0.35); }
+/* ---------- podium blocks carry the names, framed gold / silver / bronze ---------- */
+.podium-block { position: relative; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; padding: 22px 12px 0; border-width: 3px 3px 0; }
+.podium-block-name { font-size: clamp(1.2rem, 2vw, 1.9rem); font-weight: 800; line-height: 1.1; text-align: center; overflow-wrap: anywhere; }
+.p1 .podium-block-name { font-size: clamp(1.5rem, 2.6vw, 2.5rem); }
+.medal-rank { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); padding: 1px 10px; border-radius: 999px; font-family: var(--font-display); font-weight: 800; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: #1a1200; }
+.podium-block.medal-1 { border-color: #f5c542; background: linear-gradient(180deg, rgb(245 197 66 / 0.34), rgb(245 197 66 / 0.06)); box-shadow: 0 0 0 1px rgb(245 197 66 / 0.5), 0 0 40px rgb(245 197 66 / 0.35); }
 .medal-1 .medal-rank { background: linear-gradient(180deg, #ffe08a, #e0a800); }
-.medal-2 { border-color: #cfd6df; background: linear-gradient(180deg, rgb(207 214 223 / 0.24), rgb(207 214 223 / 0.06)); box-shadow: 0 0 0 1px rgb(207 214 223 / 0.4), 0 0 24px rgb(207 214 223 / 0.25); }
+.podium-block.medal-2 { border-color: #cfd6df; background: linear-gradient(180deg, rgb(207 214 223 / 0.28), rgb(207 214 223 / 0.05)); box-shadow: 0 0 0 1px rgb(207 214 223 / 0.4), 0 0 26px rgb(207 214 223 / 0.22); }
 .medal-2 .medal-rank { background: linear-gradient(180deg, #f2f5f8, #b4bcc6); }
-.medal-3 { border-color: #d0894f; background: linear-gradient(180deg, rgb(208 137 79 / 0.26), rgb(208 137 79 / 0.06)); box-shadow: 0 0 0 1px rgb(208 137 79 / 0.4), 0 0 24px rgb(208 137 79 / 0.25); }
+.podium-block.medal-3 { border-color: #d0894f; background: linear-gradient(180deg, rgb(208 137 79 / 0.3), rgb(208 137 79 / 0.05)); box-shadow: 0 0 0 1px rgb(208 137 79 / 0.4), 0 0 26px rgb(208 137 79 / 0.22); }
 .medal-3 .medal-rank { background: linear-gradient(180deg, #f0b98a, #b8733a); color: #2a1200; }
-.podium-medal .podium-name { margin: 0; }
+.podium-value { margin-top: 0; }
+.podium-sub { margin-bottom: 10px; }
+
+/* ---------- objective colours ---------- */
+.obj-tag { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #fff; white-space: nowrap; }
+.obj-tag::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: rgb(255 255 255 / 0.85); }
+.obj-tag.small { height: 20px; padding: 0 8px; font-size: 0.66rem; }
+.obj-tag.capital { background: var(--o-capital); color: #2b1c00; }
+.obj-tag.capital::before { background: #2b1c00; }
+.obj-tag.validation { background: var(--o-validation); }
+.obj-tag.marketing { background: var(--o-marketing); }
+.objective-box.obj-capital { border-color: var(--o-capital); background: color-mix(in srgb, var(--o-capital) 14%, var(--surface)); }
+.objective-box.obj-validation { border-color: var(--o-validation); background: color-mix(in srgb, var(--o-validation) 12%, var(--surface)); }
+.objective-box.obj-marketing { border-color: var(--o-marketing); background: color-mix(in srgb, var(--o-marketing) 12%, var(--surface)); }
+.objective-box.obj-capital .objective-label, .objective-box.obj-capital .score-on { border-color: var(--o-capital); color: color-mix(in srgb, var(--o-capital) 70%, var(--ink)); }
+.objective-box.obj-validation .objective-label, .objective-box.obj-validation .score-on { border-color: var(--o-validation); color: color-mix(in srgb, var(--o-validation) 70%, var(--ink)); }
+.objective-box.obj-marketing .objective-label, .objective-box.obj-marketing .score-on { border-color: var(--o-marketing); color: color-mix(in srgb, var(--o-marketing) 70%, var(--ink)); }
+.objective-box .score-on strong { color: var(--ink); }
+.objective-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.stat .obj-tag { height: 22px; }
+
+/* podium blocks list the team's players, fading when the list is long */
+.podium-members { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 100%; max-height: calc(100% - 8px); overflow: hidden; mask-image: linear-gradient(180deg, #000 55%, transparent 100%); -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 100%); }
+.podium-member { font-family: var(--font-display); font-weight: 700; font-size: clamp(0.95rem, 1.3vw, 1.3rem); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.p1 .podium-member { font-size: clamp(1.05rem, 1.5vw, 1.5rem); }
+.podium-name { font-size: clamp(1.3rem, 2.2vw, 2rem); font-weight: 800; line-height: 1.1; margin-bottom: 2px; }
+.p1 .podium-name { font-size: clamp(1.6rem, 2.8vw, 2.6rem); }
+
+/* objective as plain coloured text (tables, lists) */
+.obj-text { font-weight: 700; }
+.obj-text.capital { color: var(--o-capital); }
+.obj-text.validation { color: var(--o-validation); }
+.obj-text.marketing { color: var(--o-marketing); }
+
+/* podium: campaign name boxed gold / silver / bronze by place */
+.podium-name.medal-box { display: inline-block; padding: 6px 18px; border-radius: 12px; border: 3px solid; margin-bottom: 8px; }
+.podium-name.medal-1 { border-color: #f5c542; background: linear-gradient(180deg, rgb(245 197 66 / 0.32), rgb(245 197 66 / 0.1)); box-shadow: 0 0 24px rgb(245 197 66 / 0.35); }
+.podium-name.medal-2 { border-color: #cfd6df; background: linear-gradient(180deg, rgb(207 214 223 / 0.28), rgb(207 214 223 / 0.08)); box-shadow: 0 0 18px rgb(207 214 223 / 0.25); }
+.podium-name.medal-3 { border-color: #d0894f; background: linear-gradient(180deg, rgb(208 137 79 / 0.3), rgb(208 137 79 / 0.08)); box-shadow: 0 0 18px rgb(208 137 79 / 0.25); }
+
+/* podium blocks tall enough for a full team; names in a tidy column */
+.p1 .podium-block { height: clamp(160px, 27vh, 270px); }
+.p2 .podium-block { height: clamp(140px, 23vh, 230px); }
+.p3 .podium-block { height: clamp(125px, 20vh, 200px); }
+.podium-block { padding-top: 24px; }
+.podium-members { gap: 2px; max-height: calc(100% - 4px); mask-image: linear-gradient(180deg, #000 70%, transparent 100%); -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent 100%); }
+.podium-member { font-size: clamp(0.9rem, 1.15vw, 1.15rem); line-height: 1.25; font-weight: 600; }
+.p1 .podium-member { font-size: clamp(1rem, 1.3vw, 1.3rem); }
+
+/* fade only when the member list overflows its block */
+.podium-members { mask-image: none; -webkit-mask-image: none; }
+.podium-members.overflowing { mask-image: linear-gradient(180deg, #000 60%, transparent 100%); -webkit-mask-image: linear-gradient(180deg, #000 60%, transparent 100%); }
+
+/* keep podium + table inside a 768px screen */
+.p1 .podium-block { height: clamp(150px, 24vh, 240px); }
+.p2 .podium-block { height: clamp(130px, 20vh, 205px); }
+.p3 .podium-block { height: clamp(112px, 17vh, 175px); }
+.podium-sub { margin-bottom: 4px; }
+.screen.phase-reveal .stats-table { font-size: clamp(0.85rem, 1vw, 1.15rem); }
+.screen.phase-reveal .stats-table td { padding: 5px 8px; }
+.screen.phase-reveal .stats-table th { padding: 4px 8px; }
+.screen.reveal { gap: 14px; padding-top: 16px; }
+.settings-grid.three { grid-template-columns: 1fr 1fr 1fr; }

@@ -69,14 +69,9 @@
   }
 }
 
-/* Strategy colours: one hue per decision, same in both themes. */
+/* Objective colours: one hue per hidden objective, same in both themes. */
 :root {
-  --s-goal-low: #2fbf71;
-  --s-goal-medium: #f0a51c;
-  --s-goal-high: #ff5c7a;
-  --s-rewards-generous: #ff8c42;
-  --s-network-share: #1fb5ab;
-  --s-network-back: #4c8dff;
-  --s-prep-audience: #8b7bff;
-  --s-muted: #8a93a0;
+  --o-capital: #f0a51c;
+  --o-validation: #4c8dff;
+  --o-marketing: #c56bff;
 }

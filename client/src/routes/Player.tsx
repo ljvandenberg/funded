@@ -10,7 +10,6 @@ import {
   playersOfTeam,
   revealView,
   teamIsFull,
-  decisionTone,
   sortTeamIds,
   totalAlloc,
   type CampaignResult,
@@ -26,6 +25,7 @@ import { Spinner } from "../components/Spinner";
 import { CampaignCard, type ShareState } from "../components/CampaignCard";
 import { CoinRow } from "../components/Coins";
 import { Leaderboard } from "../components/Leaderboard";
+import { ObjectiveTag } from "../components/Objective";
 
 export function Player() {
   const game = useGame();
@@ -336,12 +336,11 @@ function DecisionGroup({
             key={o.value}
             className="option"
             aria-pressed={value === o.value}
-            data-tone={decisionTone(field, o.value) ?? undefined}
             onClick={() => onSelect?.(o.value)}
             disabled={disabled}
             tabIndex={onSelect ? 0 : -1}
           >
-            <span className="title"><span className={`swatch ${decisionTone(field, o.value) ?? ""}`} aria-hidden />{o.title}</span>
+            <span className="title">{o.title}</span>
             <span className="check">{value === o.value ? "✓" : ""}</span>
             <span className="effect">{o.effect}</span>
           </button>
@@ -359,8 +358,11 @@ function CaseCard({ team, showObjective }: { team: Team; showObjective: boolean 
       <div className="display" style={{ fontSize: "1.6rem", fontWeight: 800 }}>{c.name}</div>
       <p>{c.blurb}</p>
       {showObjective && (
-        <div className="objective-box" style={{ marginTop: 6 }}>
-          <span className="objective-label">Your objective (only your team sees this)</span>
+        <div className={`objective-box obj-${c.objective}`} style={{ marginTop: 6 }}>
+          <div className="row between wrap">
+            <span className="objective-label">Your objective (only your team sees this)</span>
+            <ObjectiveTag objective={c.objective} />
+          </div>
           <p>{c.objectiveText}</p>
           <div className="score-on">
             <span className="score-on-label">You score on</span>
@@ -632,7 +634,7 @@ function Reveal({ game, me }: { game: Game; me: PlayerT }) {
           </div>
           <dl className="kv">
             <dt>Raised</dt><dd className="num">Raised {mine.raised} of {mine.goal}</dd>
-            <dt>Objective</dt><dd>Objective: {OBJECTIVE_LABEL[mine.objective]}</dd>
+            <dt>Objective</dt><dd><ObjectiveTag objective={mine.objective} /></dd>
             <dt>Net</dt><dd className="num">Net after rewards: {mine.net}</dd>
             <dt>Own team</dt><dd className="num">{mine.ownSharePct}% came from your own team</dd>
             <dt>External</dt><dd className="num">{mine.external} coins from outside · {mine.backers} backers · {mine.shares} shares</dd>
@@ -647,9 +649,9 @@ function Reveal({ game, me }: { game: Game; me: PlayerT }) {
             const c = results.campaigns[id];
             return (
               <div key={id} className="row between" style={{ padding: "6px 0", borderBottom: "1px solid var(--line)" }}>
-                <span>
+                <span className="row">
                   <span className="bold">{c.name}</span>
-                  <span className="muted small"> · {OBJECTIVE_LABEL[c.objective]}</span>
+                  <ObjectiveTag objective={c.objective} plain />
                 </span>
                 <span className={`num bold small`} style={{ color: c.funded ? "var(--good)" : "var(--bad)" }}>
                   {c.raised}/{c.goal} {c.funded ? "✓" : "✗"}

@@ -11,6 +11,7 @@ import {
   sortTeamIds,
   type CampaignResult,
   type Game,
+  type Objective,
 } from "@funded/shared";
 import { getJoinUrl, useGame, useNow } from "../lib/socket";
 import { useCountUp, useFlip, useRisingEdge } from "../lib/motion";
@@ -20,7 +21,8 @@ import { Countdown } from "../components/Countdown";
 import { ProgressBar } from "../components/ProgressBar";
 import { QR } from "../components/QR";
 import { Confetti } from "../components/Confetti";
-import { StrategyChips } from "../components/Strategy";
+import { Badges } from "../components/Badge";
+import { ObjectiveTag } from "../components/Objective";
 
 export function Screen() {
   const game = useGame();
@@ -46,7 +48,7 @@ export function Screen() {
     const step = game?.phase === "REVEAL" ? game.revealStep : 0;
     const teams = game ? Object.keys(game.teams).length : 0;
     if (game?.phase === "REVEAL" && step > prevStep.current) {
-      if (step <= teams) sfx("reveal", 0.9);
+      if (step <= teams) sfx("reveal", 0.54); // 0.9 × 0.6
       else if (step === teams + 1 || step === teams + 2) sfx("fanfare", 0.9);
     }
     prevStep.current = step;
@@ -337,7 +339,8 @@ function Lane({ c, rank, now, game, goalX }: { c: CampaignResult; rank: number; 
         <div className="lane-name">{c.name}</div>
         <div className="lane-meta">
           <span className="lane-team">Team {c.teamNumber}</span>
-          <StrategyChips c={c} compact />
+          <span>{GOAL_SHORT[c.goalLevel]} goal · {c.multiplier.toFixed(1)}×</span>
+          <Badges badges={c.badges.filter((b) => b !== "New")} />
         </div>
       </div>
       <div className="lane-track">
@@ -372,6 +375,10 @@ function Lane({ c, rank, now, game, goalX }: { c: CampaignResult; rank: number; 
 // ---------------------------------------------------------------- REVEAL
 
 const GOAL_WORD = { low: "Low", medium: "Medium", high: "High" } as const;
+const GOAL_SHORT = GOAL_WORD;
+const REWARD_WORD = { modest: "Modest", generous: "Generous" } as const;
+const NETWORK_WORD = { back: "Friends back", share: "Friends share" } as const;
+const PREP_WORD = { now: "Launched now", audience: "Built audience" } as const;
 
 function Stat({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "good" | "bad" | "coin" }) {
   return (
@@ -429,7 +436,7 @@ function RevealScreen({ game }: { game: Game }) {
                   <Stat label="from own team" value={`${c.ownSharePct}%`} />
                   <Stat label="backers" value={c.backers} />
                   <Stat label="shares" value={c.shares} />
-                  <Stat label="objective" value={OBJECTIVE_LABEL[c.objective]} />
+                  <Stat label="objective" value={<ObjectiveTag objective={c.objective} />} />
                 </div>
               </div>
             );
@@ -498,7 +505,9 @@ function RevealScreen({ game }: { game: Game }) {
           items={top.map((c) => ({
             id: c.teamId,
             title: c.name,
-            sub: `Team ${c.teamNumber} · ${OBJECTIVE_LABEL[c.objective]} · ${c.funded ? "funded" : "not funded"}`,
+            sub: `Team ${c.teamNumber} · ${c.funded ? "funded" : "not funded"}`,
+            objective: c.objective,
+            members: playersOfTeam(game, c.teamId).map((p) => p.name),
             value: c.score,
             unit: "points",
           }))}
@@ -519,8 +528,8 @@ function RevealScreen({ game }: { game: Game }) {
                     <td className="num">{i + 1}</td>
                     <td className="bold display">{c.name}</td>
                     <td className="num">{c.teamNumber}</td>
-                    <td>{OBJECTIVE_LABEL[c.objective]}</td>
-                    <td className={`num goal-${c.goalLevel}`}>{c.goal} <span className="small">{GOAL_WORD[c.goalLevel]}</span></td>
+                    <td><ObjectiveTag objective={c.objective} plain /></td>
+                    <td className="num">{c.goal} <span className="muted small">{GOAL_WORD[c.goalLevel]}</span></td>
                     <td className="num">{c.raised}</td>
                     <td className={c.funded ? "good bold" : "bad bold"}>{c.funded ? "FUNDED" : "NOT FUNDED"}</td>
                     <td className="num">{c.ownSharePct}%</td>
@@ -557,11 +566,11 @@ function RevealScreen({ game }: { game: Game }) {
           }
           const latest = i === view.campaignsRevealed - 1;
           return (
-            <div key={id} className={`card reveal-card${c.funded ? " accent" : " missed"}${latest ? " flip-in" : ""}`}>
+            <div key={id} className={`card reveal-card obj-${c.objective}${c.funded ? " accent" : " missed"}${latest ? " flip-in" : ""}`}>
               {latest && c.funded && <Confetti />}
               <div>
                 <div className="name display" style={{ fontSize: "1.7rem" }}>{c.name} <span className="muted" style={{ fontSize: "1rem", fontWeight: 500 }}>Team {c.teamNumber}</span></div>
-                <StrategyChips c={c} />
+                <Badges badges={c.badges.filter((b) => b !== "New")} />
               </div>
               <ProgressBar progress={c.progress} funded={c.funded} big noStamp />
               <div className="row between">
@@ -570,9 +579,9 @@ function RevealScreen({ game }: { game: Game }) {
                 </div>
                 <div className={`verdict ${c.funded ? "good" : "bad"}${latest ? " stamp-in" : ""}`}>{c.funded ? "FUNDED" : "NOT FUNDED"}</div>
               </div>
-              <div className="objective-line">
-                <b>Objective: {OBJECTIVE_LABEL[c.objective]}</b>
-                <span className="muted"> · {OBJECTIVE_SHORT[c.objective]}</span>
+              <div className={`objective-line obj-${c.objective}`}>
+                <ObjectiveTag objective={c.objective} />
+                <span className="muted"> {OBJECTIVE_SHORT[c.objective]}</span>
               </div>
               <div className="mini-stats">
                 <Stat label="own team" value={`${c.ownSharePct}%`} tone={c.ownSharePct >= 50 ? "bad" : undefined} />
@@ -581,6 +590,12 @@ function RevealScreen({ game }: { game: Game }) {
                 <Stat label="shares" value={c.shares} />
                 <Stat label="net" value={c.net} tone="coin" />
                 <Stat label="score" value={c.score} tone={c.funded ? "good" : "bad"} />
+              </div>
+              <div className="choices">
+                <span>{GOAL_WORD[c.goalLevel]} goal · {c.multiplier.toFixed(1)}×</span>
+                <span>{REWARD_WORD[c.rewardsLevel]} rewards</span>
+                <span>{NETWORK_WORD[c.network]}</span>
+                <span>{PREP_WORD[c.prep]}</span>
               </div>
             </div>
           );
@@ -605,7 +620,13 @@ interface PodiumItem {
   value: number;
   unit: string;
   decimals?: number;
+  objective?: Objective;
+  /** Team podium: the players; shown inside the block, fading out if long. */
+  members?: string[];
 }
+
+/** How many names fit in each block before the list fades out at the bottom. */
+const MEMBERS_THAT_FIT: Record<number, number> = { 1: 6, 2: 5, 3: 4 };
 
 /** 2nd · 1st · 3rd, blocks rising in order 3 → 2 → 1, confetti on the winner. */
 function Podium({ items }: { items: PodiumItem[] }) {
@@ -626,21 +647,30 @@ function Podium({ items }: { items: PodiumItem[] }) {
           {item ? (
             <div className="podium-label rise" style={{ animationDelay: `${delay + 0.35}s` }}>
               {place === 1 && celebrate && <Confetti big count={40} />}
-              <div className={`podium-medal medal-${place}`}>
-                <span className="medal-rank">{place === 1 ? "1st" : place === 2 ? "2nd" : "3rd"}</span>
-                <div className="podium-name display">{item.title}</div>
-              </div>
-              <div className="podium-sub muted">{item.sub}</div>
+              <div className={`podium-name display medal-box medal-${place}`}>{item.title}</div>
               <div className="podium-value num">
                 <PodiumValue value={item.value} decimals={item.decimals ?? 0} delay={delay + 0.35} />
                 <span className="podium-unit"> {item.unit}</span>
+              </div>
+              <div className="podium-sub muted row" style={{ justifyContent: "center", gap: 8 }}>
+                {item.objective && <ObjectiveTag objective={item.objective} small />}
+                <span>{item.sub}</span>
               </div>
             </div>
           ) : (
             <div className="podium-label muted">—</div>
           )}
-          <div className="podium-block" style={{ animationDelay: `${delay}s` }}>
-            <span className="podium-place">{place}</span>
+          <div className={`podium-block medal-${place}`} style={{ animationDelay: `${delay}s` }}>
+            <span className="medal-rank">{place === 1 ? "1st" : place === 2 ? "2nd" : "3rd"}</span>
+            {item?.members ? (
+              <div className={`podium-members${item.members.length > MEMBERS_THAT_FIT[place] ? " overflowing" : ""}`}>
+                {item.members.map((m) => (
+                  <span key={m} className="podium-member">{m}</span>
+                ))}
+              </div>
+            ) : (
+              <div className="podium-block-name display">{item ? item.title : "—"}</div>
+            )}
           </div>
         </div>
       ))}
