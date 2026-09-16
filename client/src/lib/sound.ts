@@ -17,6 +17,7 @@ const FILES = {
   close: "/audio/close.mp3",
   reveal: "/audio/reveal.mp3",
   fanfare: "/audio/fanfare.mp3",
+  fail: "/audio/fail.mp3",
 } as const;
 
 export type MusicTrack = "lobby" | "build" | "market";
@@ -164,7 +165,7 @@ export function stopMusic() {
   setMusic(null);
 }
 
-export function sfx(name: "funded" | "share" | "close" | "reveal" | "fanfare", volume = 0.9) {
+export function sfx(name: "funded" | "share" | "close" | "reveal" | "fanfare" | "fail", volume = 0.9) {
   if (!enabled || !unlocked) return;
   if (volume > 1) {
     playBoosted(name, volume);

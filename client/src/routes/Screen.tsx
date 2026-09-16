@@ -42,14 +42,18 @@ export function Screen() {
           ? "market"
           : null;
   usePhaseMusic(track, marketOpen, game?.phase === "MARKET" ? game.phaseEndsAt : null);
-  // A shot for every campaign revealed, a fanfare for each podium.
+  // Each campaign reveal: a shot if it reached its goal, a whomp if it missed. A fanfare for each podium.
   const prevStep = useRef(0);
   useEffect(() => {
     const step = game?.phase === "REVEAL" ? game.revealStep : 0;
     const teams = game ? Object.keys(game.teams).length : 0;
-    if (game?.phase === "REVEAL" && step > prevStep.current) {
-      if (step <= teams) sfx("reveal", 0.54); // 0.9 × 0.6
-      else if (step === teams + 1 || step === teams + 2) sfx("fanfare", 0.9);
+    if (game && game.phase === "REVEAL" && step > prevStep.current) {
+      if (step <= teams) {
+        const r = computeResults(game, Date.now());
+        const revealed = r.campaigns[r.campaignOrder[step - 1]];
+        if (revealed && !revealed.funded) sfx("fail", 0.8);
+        else sfx("reveal", 0.54); // 0.9 × 0.6
+      } else if (step === teams + 1 || step === teams + 2) sfx("fanfare", 0.9);
     }
     prevStep.current = step;
   }, [game]);
@@ -456,6 +460,7 @@ function RevealScreen({ game }: { game: Game }) {
       <>
         <Top title="Top investors" game={game} timer={false} />
         <Podium
+          key="investors"
           items={top.map((i) => ({
             id: i.playerId,
             title: i.name,
@@ -502,6 +507,7 @@ function RevealScreen({ game }: { game: Game }) {
       <>
         <Top title="Team leaderboard" game={game} timer={false} />
         <Podium
+          key="teams"
           items={top.map((c) => ({
             id: c.teamId,
             title: c.name,

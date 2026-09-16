@@ -59,7 +59,8 @@ export function useCountUp(value: number, ms = 600): number {
     start.current = performance.now();
     let raf = 0;
     const step = (t: number) => {
-      const p = Math.min(1, (t - start.current) / ms);
+      // rAF may hand us a frame time from before start; never run backwards.
+      const p = Math.min(1, Math.max(0, (t - start.current) / ms));
       const eased = 1 - Math.pow(1 - p, 3);
       const v = from.current + (value - from.current) * eased;
       setShown(p < 1 ? Math.round(v * 10) / 10 : value);
