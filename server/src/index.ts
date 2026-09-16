@@ -68,6 +68,8 @@ const io = new Server(httpServer, {
   cors: { origin: true },
   pingInterval: 10_000,
   pingTimeout: 8_000,
+  // Full-state broadcasts are ~15 KB of very repetitive JSON; deflate cuts that by ~80%.
+  perMessageDeflate: { threshold: 1024 },
 });
 
 // ---------- broadcast (throttled) ----------

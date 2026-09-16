@@ -27,8 +27,8 @@ export const CONFIG = {
   captainTimeoutMs: 20000,
   /** How long the big screen shows the "Just launched" banner. */
   launchBannerMs: 5000,
-  /** Server-side throttle for full-state broadcasts. */
-  broadcastIntervalMs: 100,
+  /** Server-side throttle for full-state broadcasts (5/s; countdowns run client-side). */
+  broadcastIntervalMs: 200,
   serverTimeIntervalMs: 5000,
   tickIntervalMs: 250,
 } as const;
